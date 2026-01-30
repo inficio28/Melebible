@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Mots Mêlés</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+    <!-- ÉCRAN ACCUEIL -->
+    <div id="screen-home" class="screen active">
+        <div class="logo">
+            <!-- Logo livre ouvert + lettres (SVG simple) -->
+            <svg viewBox="0 0 200 120">
+                <path d="M20 90 Q60 60 100 90 Q140 60 180 90 L180 30 Q140 0 100 30 Q60 0 20 30 Z"
+                      fill="#ffffff" stroke="#333" stroke-width="2"/>
+                <text x="60" y="55" font-size="18" fill="#333">A</text>
+                <text x="90" y="35" font-size="18" fill="#333">B</text>
+                <text x="120" y="50" font-size="18" fill="#333">C</text>
+            </svg>
+        </div>
+
+        <h1>Mots Mêlés</h1>
+
+        <div class="pseudo-box">
+            <label for="pseudo">Pseudonyme :</label>
+            <input type="text" id="pseudo" placeholder="Entrez votre pseudo">
+        </div>
+
+        <div class="home-buttons">
+            <button id="btn-start">Démarrer</button>
+            <button id="btn-scores">Scores</button>
+        </div>
+    </div>
+
+    <!-- ÉCRAN JEU -->
+    <div id="screen-game" class="screen">
+        <div id="grid-container">
+            <div id="grid"></div>
+        </div>
+        <div id="game-footer">
+            <div id="word-list-container">
+                <h2>Mots à trouver</h2>
+                <ul id="word-list"></ul>
+            </div>
+            <button id="btn-quit">Quitter</button>
+        </div>
+    </div>
+
+    <!-- ÉCRAN SCORES -->
+    <div id="screen-scores" class="screen">
+        <h1>Scores</h1>
+        <ul id="scores-list"></ul>
+        <button id="btn-back-home">Retour</button>
+    </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
