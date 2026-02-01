@@ -1,6 +1,6 @@
 // CONFIG SUPABASE
-const SUPABASE_URL = "https://motscroises.supabase.co"; // si différent, adapte
-const SUPABASE_KEY = "TA_CLE_API"; // remplace par ta clé
+const SUPABASE_URL = "https://rntiiwtohwzsyzxnicxt.supabase.co"; // si différent, adapte
+const SUPABASE_KEY = "sb_publishable_71Mmkhcc8rouQ2j4-tOZ1A_PunfjBTb"; // remplace par ta clé
 
 const LARGEUR = 10;
 const HAUTEUR = 20;
