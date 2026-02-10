@@ -14,6 +14,7 @@ let foundWords = [];
 let gridData = [];
 let selectedCells = [];
 let isSelecting = false;
+let isDatabaseConnected = false;
 
 // Éléments DOM
 const homepage = document.getElementById('homepage');
@@ -25,6 +26,52 @@ const scoreValueDisplay = document.getElementById('scoreValue');
 const wordGrid = document.getElementById('wordGrid');
 const wordList = document.getElementById('wordList');
 const newGameBtn = document.getElementById('newGameBtn');
+const dbStatus = document.getElementById('dbStatus');
+
+// Vérifier la connexion à la base de données au chargement
+window.addEventListener('DOMContentLoaded', checkDatabaseConnection);
+
+// Vérifier la connexion à la base de données
+async function checkDatabaseConnection() {
+    const statusIcon = dbStatus.querySelector('.status-icon');
+    const statusText = dbStatus.querySelector('.status-text');
+    
+    dbStatus.className = 'db-status checking';
+    statusIcon.textContent = '⏳';
+    statusText.textContent = 'Vérification de la connexion...';
+    
+    try {
+        // Tester la connexion en essayant de récupérer un enregistrement
+        const { data, error } = await supabaseClient
+            .from('mots')
+            .select('Mots')
+            .limit(1);
+        
+        if (error) throw error;
+        
+        // Connexion réussie
+        isDatabaseConnected = true;
+        dbStatus.className = 'db-status connected';
+        statusIcon.textContent = '✅';
+        statusText.textContent = 'Connecté à la base de données';
+        
+        console.log('✅ Connexion à Supabase réussie !');
+        
+    } catch (error) {
+        // Échec de la connexion
+        isDatabaseConnected = false;
+        dbStatus.className = 'db-status error';
+        statusIcon.textContent = '❌';
+        statusText.textContent = 'Erreur de connexion à la base de données';
+        
+        console.error('❌ Erreur de connexion à Supabase:', error.message);
+        
+        // Afficher plus de détails sur l'erreur
+        setTimeout(() => {
+            statusText.textContent = 'Mode hors ligne - Mots par défaut utilisés';
+        }, 2000);
+    }
+}
 
 // Event Listeners
 startBtn.addEventListener('click', startGame);
@@ -40,6 +87,14 @@ async function startGame() {
     if (!pseudo) {
         alert('Entre un pseudo pour commencer !');
         return;
+    }
+    
+    // Vérifier/créer le joueur dans la base de données
+    if (isDatabaseConnected) {
+        const playerCreated = await createOrGetPlayer(pseudo);
+        if (!playerCreated) {
+            return; // Erreur lors de la création du joueur
+        }
     }
     
     currentPlayer = pseudo;
@@ -60,23 +115,76 @@ async function startGame() {
     displayWordList();
 }
 
+// Créer ou récupérer un joueur dans la base de données
+async function createOrGetPlayer(pseudo) {
+    try {
+        // Vérifier si le pseudo existe déjà
+        const { data: existingPlayer, error: selectError } = await supabaseClient
+            .from('scores')
+            .select('id, pseudo, score')
+            .eq('pseudo', pseudo)
+            .single();
+        
+        if (selectError && selectError.code !== 'PGRST116') {
+            // PGRST116 = aucun résultat trouvé, ce qui est normal pour un nouveau joueur
+            throw selectError;
+        }
+        
+        if (existingPlayer) {
+            // Le joueur existe déjà
+            console.log(`✅ Joueur "${pseudo}" trouvé dans la base de données`);
+            currentScore = existingPlayer.score || 0;
+            return true;
+        } else {
+            // Créer un nouveau joueur
+            const { data: newPlayer, error: insertError } = await supabaseClient
+                .from('scores')
+                .insert([
+                    { pseudo: pseudo, score: 0 }
+                ])
+                .select()
+                .single();
+            
+            if (insertError) throw insertError;
+            
+            console.log(`✅ Nouveau joueur "${pseudo}" créé avec succès !`);
+            return true;
+        }
+        
+    } catch (error) {
+        console.error('❌ Erreur lors de la création/récupération du joueur:', error);
+        
+        if (error.code === '23505') {
+            // Erreur de contrainte unique - le pseudo existe déjà
+            alert(`Le pseudo "${pseudo}" existe déjà. Connexion en cours...`);
+            return true;
+        } else {
+            alert('Erreur lors de la connexion à la base de données. Veuillez réessayer.');
+            return false;
+        }
+    }
+}
+
 // Charger les mots depuis Supabase
 async function loadWords() {
     try {
         const { data, error } = await supabaseClient
             .from('mots')
-            .select('mots');
+            .select('Mots');
         
         if (error) throw error;
         
         // Prendre 8 mots aléatoires
-        const allWords = data.map(item => item.mots.toUpperCase());
+        const allWords = data.map(item => item.Mots.toUpperCase());
         wordsToFind = shuffleArray(allWords).slice(0, 8);
         
+        console.log('✅ Mots chargés depuis la base de données');
+        
     } catch (error) {
-        console.error('Erreur lors du chargement des mots:', error);
+        console.error('❌ Erreur lors du chargement des mots:', error);
         // Mots de secours si la connexion échoue
         wordsToFind = ['CHAT', 'CHIEN', 'SOLEIL', 'LUNE', 'OISEAU', 'FLEUR', 'ARBRE', 'MAISON'];
+        console.log('⚠️ Utilisation des mots par défaut');
     }
 }
 
@@ -382,26 +490,32 @@ function updateWordList(word) {
 
 // Fin de partie
 async function endGame() {
-    alert(`🎉 Bravo ${currentPlayer} ! Tu as trouvé tous les mots !\nScore final: ${currentScore}`);
-    
     // Sauvegarder le score dans Supabase
     await saveScore();
+    
+    alert(`🎉 Bravo ${currentPlayer} ! Tu as trouvé tous les mots !\nScore de cette partie: ${currentScore}`);
 }
 
 // Sauvegarder le score
 async function saveScore() {
+    if (!isDatabaseConnected) {
+        console.log('⚠️ Base de données non connectée - Score non sauvegardé');
+        return;
+    }
+    
     try {
+        // Mettre à jour le score du joueur
         const { data, error } = await supabaseClient
             .from('scores')
-            .insert([
-                { pseudo: currentPlayer, score: currentScore }
-            ]);
+            .update({ score: currentScore })
+            .eq('pseudo', currentPlayer)
+            .select();
         
         if (error) throw error;
         
-        console.log('Score sauvegardé avec succès !');
+        console.log(`✅ Score de ${currentPlayer} mis à jour : ${currentScore} points`);
     } catch (error) {
-        console.error('Erreur lors de la sauvegarde du score:', error);
+        console.error('❌ Erreur lors de la sauvegarde du score:', error);
     }
 }
 

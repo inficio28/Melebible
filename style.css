@@ -80,6 +80,62 @@ body {
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
 }
 
+.db-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.db-status.checking {
+    background: rgba(247, 147, 30, 0.2);
+    border: 2px solid var(--secondary);
+    color: var(--secondary);
+}
+
+.db-status.connected {
+    background: rgba(6, 214, 160, 0.2);
+    border: 2px solid var(--success);
+    color: var(--success);
+    animation: successPulse 2s ease-in-out;
+}
+
+.db-status.error {
+    background: rgba(193, 18, 31, 0.2);
+    border: 2px solid var(--accent);
+    color: var(--accent);
+}
+
+@keyframes successPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+.status-icon {
+    font-size: 1.5rem;
+    animation: rotate 2s linear infinite;
+}
+
+.db-status.connected .status-icon,
+.db-status.error .status-icon {
+    animation: none;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.status-text {
+    letter-spacing: 0.05em;
+}
+
 .start-card label {
     display: block;
     font-size: 1rem;
