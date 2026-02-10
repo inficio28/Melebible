@@ -339,7 +339,14 @@ function handleTouchMove(e) {
         cell => cell.row === currentRow && cell.col === currentCol
     );
     
-    if (alreadySelected) return;
+    if (alreadySelected) {
+        // Effet visuel pour indiquer qu'on ne peut pas re-sélectionner
+        element.style.animation = 'shake 0.3s ease';
+        setTimeout(() => {
+            element.style.animation = '';
+        }, 300);
+        return;
+    }
     
     if (selectedCells.length > 0) {
         const lastCell = selectedCells[selectedCells.length - 1];
@@ -383,11 +390,26 @@ function continueSelection(e) {
     const cell = e.target;
     if (!cell.classList.contains('grid-cell')) return;
     
+    const currentRow = parseInt(cell.dataset.row);
+    const currentCol = parseInt(cell.dataset.col);
+    
+    // Vérifier si la cellule est déjà sélectionnée
+    const alreadySelected = selectedCells.some(
+        selectedCell => selectedCell.row === currentRow && selectedCell.col === currentCol
+    );
+    
+    if (alreadySelected) {
+        // Effet visuel pour indiquer qu'on ne peut pas re-sélectionner
+        cell.style.animation = 'shake 0.3s ease';
+        setTimeout(() => {
+            cell.style.animation = '';
+        }, 300);
+        return;
+    }
+    
     // Vérifier si la cellule est alignée avec les précédentes
     if (selectedCells.length > 0) {
         const lastCell = selectedCells[selectedCells.length - 1];
-        const currentRow = parseInt(cell.dataset.row);
-        const currentCol = parseInt(cell.dataset.col);
         
         if (isAligned(lastCell.row, lastCell.col, currentRow, currentCol)) {
             cell.classList.add('selected');

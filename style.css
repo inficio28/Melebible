@@ -84,47 +84,95 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.8rem;
-    padding: 1rem;
-    margin-bottom: 1.5rem;
-    border-radius: 10px;
+    gap: 1rem;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 2rem;
+    border-radius: 12px;
     font-size: 1rem;
     font-weight: bold;
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.db-status::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.db-status.connected::before {
+    animation: shimmer 2s ease-in-out;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
 }
 
 .db-status.checking {
-    background: rgba(247, 147, 30, 0.2);
+    background: linear-gradient(135deg, rgba(247, 147, 30, 0.15), rgba(255, 107, 53, 0.15));
     border: 2px solid var(--secondary);
     color: var(--secondary);
+    box-shadow: 0 4px 15px rgba(247, 147, 30, 0.2);
 }
 
 .db-status.connected {
-    background: rgba(6, 214, 160, 0.2);
+    background: linear-gradient(135deg, rgba(6, 214, 160, 0.2), rgba(4, 170, 124, 0.2));
     border: 2px solid var(--success);
     color: var(--success);
-    animation: successPulse 2s ease-in-out;
+    box-shadow: 0 4px 20px rgba(6, 214, 160, 0.3);
+    animation: successPulse 1.5s ease-in-out;
 }
 
 .db-status.error {
-    background: rgba(193, 18, 31, 0.2);
+    background: linear-gradient(135deg, rgba(193, 18, 31, 0.2), rgba(255, 107, 53, 0.2));
     border: 2px solid var(--accent);
     color: var(--accent);
+    box-shadow: 0 4px 15px rgba(193, 18, 31, 0.3);
+    animation: shake 0.5s ease-in-out;
 }
 
 @keyframes successPulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.02); }
+    0%, 100% { 
+        transform: scale(1); 
+        box-shadow: 0 4px 20px rgba(6, 214, 160, 0.3);
+    }
+    50% { 
+        transform: scale(1.03); 
+        box-shadow: 0 6px 30px rgba(6, 214, 160, 0.5);
+    }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
 }
 
 .status-icon {
-    font-size: 1.5rem;
+    font-size: 1.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.db-status.checking .status-icon {
     animation: rotate 2s linear infinite;
 }
 
-.db-status.connected .status-icon,
+.db-status.connected .status-icon {
+    animation: bounceIn 0.6s ease-out;
+}
+
 .db-status.error .status-icon {
-    animation: none;
+    animation: errorPulse 1s ease-in-out infinite;
 }
 
 @keyframes rotate {
@@ -132,8 +180,55 @@ body {
     to { transform: rotate(360deg); }
 }
 
+@keyframes bounceIn {
+    0% { 
+        transform: scale(0); 
+        opacity: 0;
+    }
+    50% { 
+        transform: scale(1.2); 
+    }
+    100% { 
+        transform: scale(1); 
+        opacity: 1;
+    }
+}
+
+@keyframes errorPulse {
+    0%, 100% { 
+        transform: scale(1); 
+        opacity: 1;
+    }
+    50% { 
+        transform: scale(1.1); 
+        opacity: 0.8;
+    }
+}
+
 .status-text {
     letter-spacing: 0.05em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    font-size: 0.95rem;
+}
+
+/* Indicateur de points (optionnel) */
+.db-status::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: currentColor;
+    opacity: 0.3;
+    border-radius: 0 0 10px 10px;
+}
+
+/* Effet de brillance pour la connexion réussie */
+.db-status.connected {
+    background: 
+        linear-gradient(135deg, rgba(6, 214, 160, 0.25), rgba(4, 170, 124, 0.25)),
+        radial-gradient(circle at 30% 50%, rgba(255, 255, 255, 0.1), transparent);
 }
 
 .start-card label {
@@ -313,29 +408,56 @@ body {
     transition: all 0.2s ease;
     user-select: none;
     border: 2px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+}
+
+.grid-cell::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 4px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.grid-cell:hover::before {
+    opacity: 1;
 }
 
 .grid-cell:hover {
     background: linear-gradient(135deg, var(--primary), var(--accent));
     transform: scale(1.1);
     box-shadow: 0 5px 15px rgba(255, 107, 53, 0.5);
+    z-index: 10;
 }
 
 .grid-cell.selected {
     background: linear-gradient(135deg, var(--secondary), var(--primary));
     border-color: white;
     transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(247, 147, 30, 0.6);
+    animation: selectPulse 0.3s ease;
+}
+
+@keyframes selectPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1.05); }
 }
 
 .grid-cell.found {
     background: linear-gradient(135deg, var(--success), #04AA7C);
     animation: found 0.6s ease;
     pointer-events: none;
+    border-color: var(--success);
 }
 
 @keyframes found {
     0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.2) rotate(5deg); }
+    25% { transform: scale(1.2) rotate(-5deg); }
+    50% { transform: scale(1.25) rotate(5deg); }
+    75% { transform: scale(1.2) rotate(-3deg); }
 }
 
 .words-panel {
