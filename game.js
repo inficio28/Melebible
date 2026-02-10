@@ -1,6 +1,6 @@
 // Configuration Supabase - REMPLACE PAR TES VRAIES CLÉS
 const SUPABASE_URL = 'https://rntiiwtohwzsyzxnicxt.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_71Mmkhcc8rouQ2j4-tOZ1A_PunfjBTb';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJudGlpd3RvaHd6c3l6eG5pY3h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3ODM3MjgsImV4cCI6MjA4NTM1OTcyOH0.NV9KXoOnfnyKAqrZ4T_wc6g5D_Uh0p140UcsdBQ-ATs';
 
 // Initialisation Supabase
 const { createClient } = supabase;

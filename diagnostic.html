@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Connexion Supabase</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #1A1423 0%, #2D1B4E 100%);
+            color: #FFF8F0;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 107, 53, 0.3);
+            border-radius: 20px;
+            padding: 2rem;
+        }
+
+        h1 {
+            color: #FF6B35;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .test-section {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #FF6B35;
+        }
+
+        .test-section h2 {
+            color: #F7931E;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        .config-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            font-family: monospace;
+        }
+
+        .config-label {
+            color: #06D6A0;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .config-value {
+            color: #FFF8F0;
+            word-break: break-all;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: bold;
+            margin-top: 1rem;
+        }
+
+        .status.checking {
+            background: rgba(247, 147, 30, 0.2);
+            color: #F7931E;
+        }
+
+        .status.success {
+            background: rgba(6, 214, 160, 0.2);
+            color: #06D6A0;
+        }
+
+        .status.error {
+            background: rgba(193, 18, 31, 0.2);
+            color: #C1121F;
+        }
+
+        .error-details {
+            background: rgba(193, 18, 31, 0.1);
+            border: 1px solid #C1121F;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        button {
+            background: linear-gradient(135deg, #FF6B35, #C1121F);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 1rem;
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 107, 53, 0.4);
+        }
+
+        .results {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid #06D6A0;
+            background: rgba(6, 214, 160, 0.05);
+        }
+
+        .log-entry.error {
+            border-left-color: #C1121F;
+            background: rgba(193, 18, 31, 0.05);
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Diagnostic de Connexion Supabase</h1>
+
+        <!-- Configuration -->
+        <div class="test-section">
+            <h2>📋 Configuration actuelle</h2>
+            <div class="config-item">
+                <span class="config-label">URL Supabase:</span>
+                <span class="config-value" id="configUrl">Chargement...</span>
+            </div>
+            <div class="config-item">
+                <span class="config-label">Anon Key:</span>
+                <span class="config-value" id="configKey">Chargement...</span>
+            </div>
+        </div>
+
+        <!-- Test de connexion -->
+        <div class="test-section">
+            <h2>🔌 Test de connexion</h2>
+            <button onclick="testConnection()">Tester la connexion</button>
+            <div id="connectionStatus"></div>
+        </div>
+
+        <!-- Test table mots -->
+        <div class="test-section">
+            <h2>📚 Test table "mots"</h2>
+            <button onclick="testMotsTable()">Tester la table mots</button>
+            <div id="motsStatus"></div>
+        </div>
+
+        <!-- Test table scores -->
+        <div class="test-section">
+            <h2>🏆 Test table "scores"</h2>
+            <button onclick="testScoresTable()">Tester la table scores</button>
+            <div id="scoresStatus"></div>
+        </div>
+
+        <!-- Logs -->
+        <div class="test-section">
+            <h2>📝 Logs détaillés</h2>
+            <div class="results" id="logs"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // REMPLACE CES VALEURS PAR TES VRAIES CLÉS SUPABASE
+        const SUPABASE_URL = 'https://rntiiwtohwzsyzxnicxt.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJudGlpd3RvaHd6c3l6eG5pY3h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3ODM3MjgsImV4cCI6MjA4NTM1OTcyOH0.NV9KXoOnfnyKAqrZ4T_wc6g5D_Uh0p140UcsdBQ-ATs';
+
+        // Initialisation
+        const { createClient } = supabase;
+        let supabaseClient;
+
+        // Afficher la configuration
+        document.getElementById('configUrl').textContent = SUPABASE_URL;
+        document.getElementById('configKey').textContent = SUPABASE_ANON_KEY.substring(0, 20) + '...';
+
+        function log(message, isError = false) {
+            const logsDiv = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry' + (isError ? ' error' : '');
+            entry.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            logsDiv.insertBefore(entry, logsDiv.firstChild);
+        }
+
+        async function testConnection() {
+            const statusDiv = document.getElementById('connectionStatus');
+            statusDiv.innerHTML = '<div class="status checking">⏳ Test en cours...</div>';
+            log('Début du test de connexion');
+
+            try {
+                // Essayer de créer le client
+                supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                log('✅ Client Supabase créé');
+
+                // Tester une requête simple
+                const { data, error } = await supabaseClient
+                    .from('mots')
+                    .select('count')
+                    .limit(1);
+
+                if (error) {
+                    throw error;
+                }
+
+                statusDiv.innerHTML = '<div class="status success">✅ Connexion réussie !</div>';
+                log('✅ Connexion à Supabase réussie !');
+                
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <div class="status error">❌ Erreur de connexion</div>
+                    <div class="error-details">
+                        <strong>Code:</strong> ${error.code || 'N/A'}<br>
+                        <strong>Message:</strong> ${error.message}<br>
+                        <strong>Détails:</strong> ${error.details || 'N/A'}<br>
+                        <strong>Hint:</strong> ${error.hint || 'N/A'}
+                    </div>
+                `;
+                log(`❌ Erreur: ${error.message}`, true);
+                console.error('Erreur complète:', error);
+            }
+        }
+
+        async function testMotsTable() {
+            const statusDiv = document.getElementById('motsStatus');
+            statusDiv.innerHTML = '<div class="status checking">⏳ Test en cours...</div>';
+            log('Test de la table "mots"');
+
+            try {
+                if (!supabaseClient) {
+                    throw new Error('Client Supabase non initialisé. Testez d\'abord la connexion.');
+                }
+
+                // Test 1: Compter les lignes
+                const { count, error: countError } = await supabaseClient
+                    .from('mots')
+                    .select('*', { count: 'exact', head: true });
+
+                if (countError) throw countError;
+                log(`✅ Table "mots" trouvée avec ${count} entrée(s)`);
+
+                // Test 2: Récupérer quelques mots
+                const { data, error } = await supabaseClient
+                    .from('mots')
+                    .select('Mots')
+                    .limit(5);
+
+                if (error) throw error;
+
+                statusDiv.innerHTML = `
+                    <div class="status success">✅ Table "mots" accessible</div>
+                    <div class="results">
+                        <strong>Nombre de mots:</strong> ${count}<br>
+                        <strong>Exemples:</strong><br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+                log(`✅ ${data.length} mot(s) récupéré(s) avec succès`);
+
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <div class="status error">❌ Erreur table "mots"</div>
+                    <div class="error-details">
+                        <strong>Message:</strong> ${error.message}<br>
+                        <strong>Code:</strong> ${error.code || 'N/A'}<br>
+                        <strong>Hint:</strong> ${error.hint || 'Vérifiez que la colonne s\'appelle bien "Mots" (avec M majuscule)'}
+                    </div>
+                `;
+                log(`❌ Erreur table "mots": ${error.message}`, true);
+                console.error('Erreur complète:', error);
+            }
+        }
+
+        async function testScoresTable() {
+            const statusDiv = document.getElementById('scoresStatus');
+            statusDiv.innerHTML = '<div class="status checking">⏳ Test en cours...</div>';
+            log('Test de la table "scores"');
+
+            try {
+                if (!supabaseClient) {
+                    throw new Error('Client Supabase non initialisé. Testez d\'abord la connexion.');
+                }
+
+                // Test 1: Compter les lignes
+                const { count, error: countError } = await supabaseClient
+                    .from('scores')
+                    .select('*', { count: 'exact', head: true });
+
+                if (countError) throw countError;
+                log(`✅ Table "scores" trouvée avec ${count} entrée(s)`);
+
+                // Test 2: Récupérer quelques scores
+                const { data, error } = await supabaseClient
+                    .from('scores')
+                    .select('*')
+                    .limit(5);
+
+                if (error) throw error;
+
+                statusDiv.innerHTML = `
+                    <div class="status success">✅ Table "scores" accessible</div>
+                    <div class="results">
+                        <strong>Nombre de joueurs:</strong> ${count}<br>
+                        <strong>Exemples:</strong><br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+                log(`✅ ${data.length} score(s) récupéré(s) avec succès`);
+
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <div class="status error">❌ Erreur table "scores"</div>
+                    <div class="error-details">
+                        <strong>Message:</strong> ${error.message}<br>
+                        <strong>Code:</strong> ${error.code || 'N/A'}<br>
+                        <strong>Hint:</strong> ${error.hint || 'Vérifiez que la table existe et que les colonnes sont correctes'}
+                    </div>
+                `;
+                log(`❌ Erreur table "scores": ${error.message}`, true);
+                console.error('Erreur complète:', error);
+            }
+        }
+
+        // Auto-test au chargement
+        window.addEventListener('load', () => {
+            log('Page de diagnostic chargée');
+            setTimeout(testConnection, 500);
+        });
+    </script>
+</body>
+</html>
