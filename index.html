@@ -2,63 +2,61 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Mots Mêlés</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Mots Croisés - Jeu de Mots Mêlés</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-
-<div id="app">
-
-    <!-- ÉCRAN ACCUEIL -->
-    <div id="screen-home" class="screen active">
-        <div class="logo">
-            <!-- Logo livre ouvert + lettres (SVG simple) -->
-            <svg viewBox="0 0 200 120">
-                <path d="M20 90 Q60 60 100 90 Q140 60 180 90 L180 30 Q140 0 100 30 Q60 0 20 30 Z"
-                      fill="#ffffff" stroke="#333" stroke-width="2"/>
-                <text x="60" y="55" font-size="18" fill="#333">A</text>
-                <text x="90" y="35" font-size="18" fill="#333">B</text>
-                <text x="120" y="50" font-size="18" fill="#333">C</text>
-            </svg>
-        </div>
-
-        <h1>Mots Mêlés</h1>
-
-        <div class="pseudo-box">
-            <label for="pseudo">Pseudonyme :</label>
-            <input type="text" id="pseudo" placeholder="Entrez votre pseudo">
-        </div>
-
-        <div class="home-buttons">
-            <button id="btn-start">Démarrer</button>
-            <button id="btn-scores">Scores</button>
-        </div>
-    </div>
-
-    <!-- ÉCRAN JEU -->
-    <div id="screen-game" class="screen">
-        <div id="grid-container">
-            <div id="grid"></div>
-        </div>
-        <div id="game-footer">
-            <div id="word-list-container">
-                <h2>Mots à trouver</h2>
-                <ul id="word-list"></ul>
+    <!-- Page d'accueil -->
+    <div id="homepage" class="page active">
+        <div class="hero-container">
+            <div class="title-wrapper">
+                <h1 class="game-title">Mots Mêlés</h1>
+                <p class="game-subtitle">Trouve tous les mots cachés dans la grille</p>
             </div>
-            <button id="btn-quit">Quitter</button>
+            
+            <div class="start-card">
+                <label for="pseudo">Entre ton pseudo</label>
+                <input type="text" id="pseudo" placeholder="Ton pseudo ici..." maxlength="20">
+                <button id="startBtn" class="start-button">Commencer la partie</button>
+            </div>
+            
+            <div class="decorative-grid">
+                <div class="grid-letter">M</div>
+                <div class="grid-letter">O</div>
+                <div class="grid-letter">T</div>
+                <div class="grid-letter">S</div>
+            </div>
         </div>
     </div>
 
-    <!-- ÉCRAN SCORES -->
-    <div id="screen-scores" class="screen">
-        <h1>Scores</h1>
-        <ul id="scores-list"></ul>
-        <button id="btn-back-home">Retour</button>
+    <!-- Page de jeu -->
+    <div id="gamepage" class="page">
+        <div class="game-container">
+            <div class="game-header">
+                <div class="player-info">
+                    <span class="player-name" id="playerName"></span>
+                    <span class="score-display">Score: <span id="scoreValue">0</span></span>
+                </div>
+                <button id="newGameBtn" class="new-game-btn">Nouvelle partie</button>
+            </div>
+
+            <div class="game-content">
+                <div class="grid-container">
+                    <div id="wordGrid" class="word-grid"></div>
+                </div>
+
+                <div class="words-panel">
+                    <h3>Mots à trouver</h3>
+                    <ul id="wordList" class="word-list"></ul>
+                </div>
+            </div>
+        </div>
     </div>
 
-</div>
-
-<script src="script.js"></script>
+    <script src="game.js"></script>
 </body>
 </html>
