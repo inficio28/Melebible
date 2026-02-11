@@ -9,14 +9,14 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // =====================================================
 // CONFIG PAR NIVEAU
-// 1 = Facile  → grille 7×7
-// 2 = Inter.  → grille 10×10
-// 3 = Difficile → grille 10×10
+// 1 = Facile       → grille 7×7,   5 mots
+// 2 = Intermédiaire → grille 10×10, 7 mots
+// 3 = Difficile     → grille 10×10, 10 mots
 // =====================================================
 const LEVEL_CONFIG = {
-    1: { rows: 7,  cols: 7,  name: 'Facile',        badgeClass: 'easy',   icon: '🟢' },
-    2: { rows: 10, cols: 10, name: 'Intermédiaire', badgeClass: 'medium', icon: '🟡' },
-    3: { rows: 10, cols: 10, name: 'Difficile',     badgeClass: 'hard',   icon: '🔴' },
+    1: { rows: 7,  cols: 7,  name: 'Facile',        badgeClass: 'easy',   icon: '🟢', wordCount: 5  },
+    2: { rows: 10, cols: 10, name: 'Intermédiaire', badgeClass: 'medium', icon: '🟡', wordCount: 7  },
+    3: { rows: 10, cols: 10, name: 'Difficile',     badgeClass: 'hard',   icon: '🔴', wordCount: 10 },
 };
 
 // =====================================================
@@ -216,10 +216,10 @@ async function loadWords() {
             const maxFit  = Math.max(config.rows, config.cols); // sécurité longueur
             const eligible = allWords.filter(w => w.length <= maxFit);
 
-            // On prend au max 8 mots aléatoires qui rentrent dans la grille
-            wordsToFind = shuffleArray(eligible).slice(0, 8);
+            // Prendre le nombre de mots spécifié par niveau
+            wordsToFind = shuffleArray(eligible).slice(0, config.wordCount);
 
-            console.log(`✅ Mots niveau ${currentLevel} :`, wordsToFind);
+            console.log(`✅ Mots niveau ${currentLevel} (${config.wordCount} mots) :`, wordsToFind);
         } else {
             throw new Error('Aucun mot trouvé pour ce niveau');
         }
@@ -227,9 +227,9 @@ async function loadWords() {
     } catch (error) {
         console.error('❌ Erreur chargement mots :', error);
         const fallback = {
-            1: ['CHAT', 'CHIEN', 'LUNE', 'ARBRE', 'FLEUR', 'OISEAU', 'MAISON', 'SOLEIL'],
-            2: ['CLAVIER', 'SOURIS', 'ECRAN', 'RESEAU', 'DISQUE', 'SCANNER', 'SERVEUR', 'FICHIER'],
-            3: ['ALGORITHME', 'FRAMEWORK', 'DATABASE', 'INTERFACE', 'PROTOCOLE', 'VARIABLE', 'FONCTION', 'BOUCLE'],
+            1: ['CHAT', 'CHIEN', 'LUNE', 'ARBRE', 'FLEUR'],
+            2: ['CLAVIER', 'SOURIS', 'ECRAN', 'RESEAU', 'DISQUE', 'SCANNER', 'SERVEUR'],
+            3: ['ALGORITHME', 'FRAMEWORK', 'DATABASE', 'INTERFACE', 'PROTOCOLE', 'VARIABLE', 'FONCTION', 'BOUCLE', 'CLASSE', 'MODULE'],
         };
         wordsToFind = fallback[currentLevel] || fallback[1];
         console.warn('⚠️ Mots de secours utilisés');
