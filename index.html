@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Mots Croisés - Jeu de Mots Mêlés</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- Page d'accueil -->
+    <div id="homepage" class="page active">
+        <div class="hero-container">
+            <div class="title-wrapper">
+                <h1 class="game-title">Mots Mêlés</h1>
+                <p class="game-subtitle">Trouve tous les mots cachés dans la grille</p>
+            </div>
+            
+            <div class="start-card">
+                <div id="dbStatus" class="db-status">
+                    <span class="status-icon">⏳</span>
+                    <span class="status-text">Vérification de la connexion...</span>
+                </div>
+                
+                <label for="pseudo">Entre ton pseudo</label>
+                <input type="text" id="pseudo" placeholder="Ton pseudo ici..." maxlength="20">
+                <button id="startBtn" class="start-button">Commencer la partie</button>
+            </div>
+            
+            <div class="decorative-grid">
+                <div class="grid-letter">M</div>
+                <div class="grid-letter">O</div>
+                <div class="grid-letter">T</div>
+                <div class="grid-letter">S</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page de jeu -->
+    <div id="gamepage" class="page">
+        <div class="game-container">
+            <div class="game-header">
+                <div class="player-info">
+                    <span class="player-name" id="playerName"></span>
+                    <span class="score-display">Score: <span id="scoreValue">0</span></span>
+                </div>
+                <button id="newGameBtn" class="new-game-btn">Nouvelle partie</button>
+            </div>
+
+            <div class="game-content">
+                <div class="grid-container">
+                    <div id="wordGrid" class="word-grid"></div>
+                </div>
+
+                <div class="words-panel">
+                    <h3>Mots à trouver</h3>
+                    <ul id="wordList" class="word-list"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
