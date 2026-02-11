@@ -243,8 +243,14 @@ function generateGrid() {
     const { rows, cols } = LEVEL_CONFIG[currentLevel];
     gridData = Array(rows).fill(null).map(() => Array(cols).fill(''));
 
-    wordsToFind.forEach(word => placeWord(word, rows, cols));
+    // Placer les mots avec possibilité de croisements
+    const placed = placeWordsWithCrossing(wordsToFind, rows, cols);
+    
+    if (placed < wordsToFind.length) {
+        console.warn(`⚠️ Seulement ${placed}/${wordsToFind.length} mots placés`);
+    }
 
+    // Remplir les cases vides
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             if (!gridData[r][c]) gridData[r][c] = getRandomLetter();
@@ -255,44 +261,135 @@ function generateGrid() {
 }
 
 // =====================================================
-// PLACER UN MOT
+// PLACEMENT DES MOTS AVEC CROISEMENTS
 // =====================================================
-function placeWord(word, rows, cols) {
-    const directions = [
-        { dr: 0,  dc: 1  },  // →
-        { dr: 1,  dc: 0  },  // ↓
-        { dr: 1,  dc: 1  },  // ↘
-        { dr: -1, dc: 1  },  // ↗
-    ];
+function placeWordsWithCrossing(words, rows, cols) {
+    let placedCount = 0;
+    const maxAttempts = 500;
 
-    let placed   = false;
-    let attempts = 0;
+    for (const word of words) {
+        let placed = false;
+        let attempts = 0;
 
-    while (!placed && attempts < 200) {
-        const dir = directions[Math.floor(Math.random() * directions.length)];
-        const row = Math.floor(Math.random() * rows);
-        const col = Math.floor(Math.random() * cols);
+        while (!placed && attempts < maxAttempts) {
+            const direction = getRandomDirection();
+            const row = Math.floor(Math.random() * rows);
+            const col = Math.floor(Math.random() * cols);
 
-        if (canPlaceWord(word, row, col, dir.dr, dir.dc, rows, cols)) {
-            for (let i = 0; i < word.length; i++) {
-                gridData[row + i * dir.dr][col + i * dir.dc] = word[i];
+            const result = canPlaceWordWithCrossing(word, row, col, direction.dr, direction.dc, rows, cols);
+            
+            if (result.canPlace) {
+                // Placer le mot
+                for (let i = 0; i < word.length; i++) {
+                    gridData[row + i * direction.dr][col + i * direction.dc] = word[i];
+                }
+                placed = true;
+                placedCount++;
+                
+                if (result.crossings > 0) {
+                    console.log(`✨ "${word}" placé avec ${result.crossings} croisement(s)`);
+                }
             }
-            placed = true;
+            attempts++;
         }
-        attempts++;
+
+        if (!placed) {
+            console.warn(`⚠️ Impossible de placer "${word}" après ${maxAttempts} tentatives`);
+        }
     }
 
-    if (!placed) console.warn(`⚠️ Impossible de placer le mot "${word}"`);
+    return placedCount;
 }
 
-function canPlaceWord(word, row, col, dr, dc, rows, cols) {
+// =====================================================
+// VÉRIFIER SI ON PEUT PLACER UN MOT (avec croisements)
+// =====================================================
+function canPlaceWordWithCrossing(word, row, col, dr, dc, rows, cols) {
+    let crossings = 0;
+    let hasSpace = true;
+
     for (let i = 0; i < word.length; i++) {
         const r = row + i * dr;
         const c = col + i * dc;
-        if (r < 0 || r >= rows || c < 0 || c >= cols) return false;
-        if (gridData[r][c] && gridData[r][c] !== word[i]) return false;
+
+        // Vérifier les limites
+        if (r < 0 || r >= rows || c < 0 || c >= cols) {
+            return { canPlace: false, crossings: 0 };
+        }
+
+        const currentCell = gridData[r][c];
+
+        if (currentCell) {
+            // Case occupée : autoriser seulement si c'est la même lettre (croisement)
+            if (currentCell !== word[i]) {
+                return { canPlace: false, crossings: 0 };
+            }
+            crossings++;
+        } else {
+            // Case vide : vérifier qu'on ne touche pas d'autres lettres perpendiculairement
+            if (!checkPerpendicularSpace(r, c, dr, dc, rows, cols)) {
+                hasSpace = false;
+            }
+        }
     }
+
+    // On accepte le placement si :
+    // - On a de l'espace autour OU on a des croisements valides
+    // - Au moins une case vide pour éviter les doublons complets
+    const hasEmptyCell = word.split('').some((letter, i) => {
+        const r = row + i * dr;
+        const c = col + i * dc;
+        return !gridData[r][c];
+    });
+
+    return { 
+        canPlace: hasEmptyCell && (hasSpace || crossings > 0), 
+        crossings 
+    };
+}
+
+// =====================================================
+// VÉRIFIER L'ESPACE PERPENDICULAIRE
+// =====================================================
+function checkPerpendicularSpace(r, c, dr, dc, rows, cols) {
+    // Directions perpendiculaires selon la direction du mot
+    const perpDirs = [];
+    
+    if (dr === 0) { // Horizontal
+        perpDirs.push([1, 0], [-1, 0]);
+    } else if (dc === 0) { // Vertical
+        perpDirs.push([0, 1], [0, -1]);
+    } else { // Diagonal
+        perpDirs.push([dr, -dc], [-dr, dc]);
+    }
+
+    // Vérifier qu'il n'y a pas de lettres juste à côté perpendiculairement
+    for (const [pdr, pdc] of perpDirs) {
+        const nr = r + pdr;
+        const nc = c + pdc;
+        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && gridData[nr][nc]) {
+            return false;
+        }
+    }
+
     return true;
+}
+
+// =====================================================
+// DIRECTIONS POSSIBLES
+// =====================================================
+function getRandomDirection() {
+    const directions = [
+        { dr: 0,  dc: 1  },  // → Horizontal droite
+        { dr: 1,  dc: 0  },  // ↓ Vertical bas
+        { dr: 1,  dc: 1  },  // ↘ Diagonal bas-droite
+        { dr: -1, dc: 1  },  // ↗ Diagonal haut-droite
+        { dr: 0,  dc: -1 },  // ← Horizontal gauche
+        { dr: -1, dc: 0  },  // ↑ Vertical haut
+        { dr: -1, dc: -1 },  // ↖ Diagonal haut-gauche
+        { dr: 1,  dc: -1 },  // ↙ Diagonal bas-gauche
+    ];
+    return directions[Math.floor(Math.random() * directions.length)];
 }
 
 function getRandomLetter() {
@@ -305,9 +402,20 @@ function getRandomLetter() {
 function renderGrid(rows, cols) {
     wordGrid.innerHTML = '';
 
-    // Mise à jour du CSS Grid en fonction du niveau
-    wordGrid.style.gridTemplateColumns = `repeat(${cols}, 50px)`;
-    wordGrid.style.gridTemplateRows    = `repeat(${rows}, 50px)`;
+    // Calcul dynamique de la taille des cellules
+    const container = document.querySelector('.grid-container');
+    const maxWidth = Math.min(container.clientWidth - 40, 600);
+    const maxHeight = window.innerHeight - 300; // Espace pour header + mots
+    
+    const cellSize = Math.floor(Math.min(
+        maxWidth / cols,
+        maxHeight / rows,
+        50 // taille max
+    ));
+
+    // Mise à jour du CSS Grid
+    wordGrid.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+    wordGrid.style.gridTemplateRows    = `repeat(${rows}, ${cellSize}px)`;
 
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
@@ -316,6 +424,11 @@ function renderGrid(rows, cols) {
             cell.textContent  = gridData[r][c];
             cell.dataset.row  = r;
             cell.dataset.col  = c;
+            
+            // Appliquer la taille calculée
+            cell.style.width  = `${cellSize}px`;
+            cell.style.height = `${cellSize}px`;
+            cell.style.fontSize = `${Math.max(cellSize * 0.5, 12)}px`;
 
             cell.addEventListener('mousedown',  startSelection);
             cell.addEventListener('mouseenter', continueSelection);
@@ -329,6 +442,18 @@ function renderGrid(rows, cols) {
 
     document.addEventListener('mouseup', endSelection);
 }
+
+// Recalculer la grille lors du resize
+let resizeTimeout;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+        if (gamepage.classList.contains('active')) {
+            const { rows, cols } = LEVEL_CONFIG[currentLevel];
+            renderGrid(rows, cols);
+        }
+    }, 250);
+});
 
 // =====================================================
 // SÉLECTION DES CELLULES
