@@ -455,16 +455,17 @@ function checkWord() {
 function displayWordList() {
     wordList.innerHTML = '';
     wordsToFind.forEach(word => {
-        const li = document.createElement('li');
-        li.textContent  = word;
-        li.dataset.word = word;
-        wordList.appendChild(li);
+        const span = document.createElement('span');
+        span.className = 'word-item';
+        span.textContent  = word;
+        span.dataset.word = word;
+        wordList.appendChild(span);
     });
 }
 
 function updateWordList(word) {
-    const li = document.querySelector(`#wordList li[data-word="${word}"]`);
-    if (li) li.classList.add('found');
+    const item = document.querySelector(`.word-item[data-word="${word}"]`);
+    if (item) item.classList.add('found');
 }
 
 // =====================================================

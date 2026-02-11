@@ -75,18 +75,18 @@
                     <span class="level-badge" id="levelBadge"></span>
                     <span class="score-display">Score: <span id="scoreValue">0</span></span>
                 </div>
-                <button id="newGameBtn" class="new-game-btn">Nouvelle partie</button>
+                <button id="newGameBtn" class="new-game-btn">Nouveau niveau</button>
             </div>
 
-            <div class="game-content">
-                <div class="grid-container">
-                    <div id="wordGrid" class="word-grid"></div>
-                </div>
+            <!-- Liste des mots compacte au-dessus de la grille -->
+            <div class="words-compact">
+                <h3>Mots à trouver :</h3>
+                <div id="wordList" class="word-list-inline"></div>
+            </div>
 
-                <div class="words-panel">
-                    <h3>Mots à trouver</h3>
-                    <ul id="wordList" class="word-list"></ul>
-                </div>
+            <!-- Grille centrée -->
+            <div class="grid-container">
+                <div id="wordGrid" class="word-grid"></div>
             </div>
         </div>
     </div>
