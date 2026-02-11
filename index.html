@@ -38,12 +38,41 @@
         </div>
     </div>
 
+    <!-- Page de sélection du niveau -->
+    <div id="levelpage" class="page">
+        <div class="hero-container">
+            <div class="title-wrapper">
+                <h1 class="game-title">Choisis ton niveau</h1>
+                <p class="game-subtitle" id="levelGreeting">Bonne chance !</p>
+            </div>
+
+            <div class="level-card">
+                <button class="level-btn level-easy" data-level="1">
+                    <span class="level-icon">🟢</span>
+                    <span class="level-name">Facile</span>
+                    <span class="level-desc">Grille 7×7</span>
+                </button>
+                <button class="level-btn level-medium" data-level="2">
+                    <span class="level-icon">🟡</span>
+                    <span class="level-name">Intermédiaire</span>
+                    <span class="level-desc">Grille 10×10</span>
+                </button>
+                <button class="level-btn level-hard" data-level="3">
+                    <span class="level-icon">🔴</span>
+                    <span class="level-name">Difficile</span>
+                    <span class="level-desc">Grille 10×10</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Page de jeu -->
     <div id="gamepage" class="page">
         <div class="game-container">
             <div class="game-header">
                 <div class="player-info">
                     <span class="player-name" id="playerName"></span>
+                    <span class="level-badge" id="levelBadge"></span>
                     <span class="score-display">Score: <span id="scoreValue">0</span></span>
                 </div>
                 <button id="newGameBtn" class="new-game-btn">Nouvelle partie</button>

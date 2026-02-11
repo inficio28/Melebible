@@ -1,382 +1,395 @@
-// Configuration Supabase - REMPLACE PAR TES VRAIES CLÉS
+// =====================================================
+// CONFIGURATION SUPABASE
+// =====================================================
 const SUPABASE_URL = 'https://zjiwgfwecsnamrmyvfsq.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqaXdnZndlY3NuYW1ybXl2ZnNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MjE3NzQsImV4cCI6MjA4NjM5Nzc3NH0.cLdaYSfPhJiDNJ1aPeMfNVJVZa6ouCZv4P0WKrrz6oo';
 
-// Initialisation Supabase
 const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Variables globales
-let currentPlayer = '';
-let currentScore = 0;
-let currentLevel = 1; // 1=facile, 2=intermédiaire, 3=difficile
-let wordsToFind = [];
-let foundWords = [];
-let gridData = [];
-let selectedCells = [];
-let isSelecting = false;
+// =====================================================
+// CONFIG PAR NIVEAU
+// 1 = Facile  → grille 7×7
+// 2 = Inter.  → grille 10×10
+// 3 = Difficile → grille 10×10
+// =====================================================
+const LEVEL_CONFIG = {
+    1: { rows: 7,  cols: 7,  name: 'Facile',        badgeClass: 'easy',   icon: '🟢' },
+    2: { rows: 10, cols: 10, name: 'Intermédiaire', badgeClass: 'medium', icon: '🟡' },
+    3: { rows: 10, cols: 10, name: 'Difficile',     badgeClass: 'hard',   icon: '🔴' },
+};
+
+// =====================================================
+// VARIABLES GLOBALES
+// =====================================================
+let currentPlayer      = '';
+let currentScore       = 0;
+let currentLevel       = 1;
+let wordsToFind        = [];
+let foundWords         = [];
+let gridData           = [];
+let selectedCells      = [];
+let isSelecting        = false;
 let isDatabaseConnected = false;
 
-// Éléments DOM
-const homepage = document.getElementById('homepage');
-const gamepage = document.getElementById('gamepage');
-const pseudoInput = document.getElementById('pseudo');
-const startBtn = document.getElementById('startBtn');
+// =====================================================
+// ÉLÉMENTS DOM
+// =====================================================
+const homepage       = document.getElementById('homepage');
+const levelpage      = document.getElementById('levelpage');
+const gamepage       = document.getElementById('gamepage');
+const pseudoInput    = document.getElementById('pseudo');
+const startBtn       = document.getElementById('startBtn');
 const playerNameDisplay = document.getElementById('playerName');
+const levelBadge     = document.getElementById('levelBadge');
 const scoreValueDisplay = document.getElementById('scoreValue');
-const wordGrid = document.getElementById('wordGrid');
-const wordList = document.getElementById('wordList');
-const newGameBtn = document.getElementById('newGameBtn');
-const dbStatus = document.getElementById('dbStatus');
+const wordGrid       = document.getElementById('wordGrid');
+const wordList       = document.getElementById('wordList');
+const newGameBtn     = document.getElementById('newGameBtn');
+const dbStatus       = document.getElementById('dbStatus');
+const levelGreeting  = document.getElementById('levelGreeting');
 
-// Vérifier la connexion à la base de données au chargement
+// =====================================================
+// INITIALISATION
+// =====================================================
 window.addEventListener('DOMContentLoaded', checkDatabaseConnection);
 
-// Vérifier la connexion à la base de données
+// =====================================================
+// CONNEXION SUPABASE
+// =====================================================
 async function checkDatabaseConnection() {
     const statusIcon = dbStatus.querySelector('.status-icon');
     const statusText = dbStatus.querySelector('.status-text');
-    
+
     dbStatus.className = 'db-status checking';
     statusIcon.textContent = '⏳';
     statusText.textContent = 'Vérification de la connexion...';
-    
+
     try {
-        // Tester la connexion en essayant de récupérer un enregistrement
         const { data, error } = await supabaseClient
             .from('mots')
-            .select('liste')
+            .select('id')
             .limit(1);
-        
+
         if (error) throw error;
-        
-        // Connexion réussie
+
         isDatabaseConnected = true;
         dbStatus.className = 'db-status connected';
         statusIcon.textContent = '✅';
         statusText.textContent = 'Connecté à la base de données';
-        
-        console.log('✅ Connexion à Supabase réussie !');
-        
+        console.log('✅ Connexion Supabase réussie !');
+
     } catch (error) {
-        // Échec de la connexion
         isDatabaseConnected = false;
         dbStatus.className = 'db-status error';
         statusIcon.textContent = '❌';
         statusText.textContent = 'Erreur de connexion à la base de données';
-        
-        console.error('❌ Erreur de connexion à Supabase:', error.message);
-        
-        // Afficher plus de détails sur l'erreur
+        console.error('❌ Erreur Supabase :', error.message);
         setTimeout(() => {
-            statusText.textContent = 'Mode hors ligne - Mots par défaut utilisés';
+            statusText.textContent = 'Mode hors ligne — Mots par défaut utilisés';
         }, 2000);
     }
 }
 
-// Event Listeners
-startBtn.addEventListener('click', startGame);
-newGameBtn.addEventListener('click', resetGame);
+// =====================================================
+// EVENT LISTENERS
+// =====================================================
+startBtn.addEventListener('click', goToLevelSelection);
 pseudoInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') startGame();
+    if (e.key === 'Enter') goToLevelSelection();
 });
 
-// Démarrer le jeu
-async function startGame() {
+document.querySelectorAll('.level-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        currentLevel = parseInt(btn.dataset.level);
+        startGame();
+    });
+});
+
+newGameBtn.addEventListener('click', () => {
+    // Retour à la sélection du niveau
+    showPage(levelpage);
+});
+
+// =====================================================
+// NAVIGATION ENTRE PAGES
+// =====================================================
+function showPage(page) {
+    [homepage, levelpage, gamepage].forEach(p => p.classList.remove('active'));
+    page.classList.add('active');
+}
+
+// =====================================================
+// ÉTAPE 1 : Pseudo → Sélection du niveau
+// =====================================================
+async function goToLevelSelection() {
     const pseudo = pseudoInput.value.trim();
-    
+
     if (!pseudo) {
         alert('Entre un pseudo pour commencer !');
         return;
     }
-    
-    // Vérifier/créer le joueur dans la base de données
+
     if (isDatabaseConnected) {
-        const playerCreated = await createOrGetPlayer(pseudo);
-        if (!playerCreated) {
-            return; // Erreur lors de la création du joueur
-        }
+        const ok = await createOrGetPlayer(pseudo);
+        if (!ok) return;
     }
-    
+
     currentPlayer = pseudo;
+    levelGreeting.textContent = `Prêt(e) ${pseudo} ?`;
+    showPage(levelpage);
+}
+
+// =====================================================
+// ÉTAPE 2 : Niveau sélectionné → Jeu
+// =====================================================
+async function startGame() {
     currentScore = 0;
-    foundWords = [];
-    
-    // Charger les mots depuis Supabase
+    foundWords   = [];
+
     await loadWords();
-    
-    // Afficher la page de jeu
-    homepage.classList.remove('active');
-    gamepage.classList.add('active');
+
+    const config = LEVEL_CONFIG[currentLevel];
     playerNameDisplay.textContent = currentPlayer;
-    scoreValueDisplay.textContent = currentScore;
-    
-    // Générer la grille
+    levelBadge.textContent  = `${config.icon} ${config.name}`;
+    levelBadge.className    = `level-badge ${config.badgeClass}`;
+    scoreValueDisplay.textContent = 0;
+
+    showPage(gamepage);
     generateGrid();
     displayWordList();
 }
 
-// Créer ou récupérer un joueur dans la base de données
+// =====================================================
+// CRÉER / RÉCUPÉRER LE JOUEUR
+// =====================================================
 async function createOrGetPlayer(pseudo) {
     try {
-        // Vérifier si le pseudo existe déjà
-        const { data: existingPlayer, error: selectError } = await supabaseClient
+        const { data: existing, error: selectError } = await supabaseClient
             .from('scores')
-            .select('id, pseudo, facile, intermediaire, difficile')
+            .select('id')
             .eq('pseudo', pseudo)
             .single();
-        
-        if (selectError && selectError.code !== 'PGRST116') {
-            // PGRST116 = aucun résultat trouvé, ce qui est normal pour un nouveau joueur
-            throw selectError;
-        }
-        
-        if (existingPlayer) {
-            // Le joueur existe déjà
-            console.log(`✅ Joueur "${pseudo}" trouvé dans la base de données`);
-            console.log(`Scores: Facile=${existingPlayer.facile}, Intermédiaire=${existingPlayer.intermediaire}, Difficile=${existingPlayer.difficile}`);
-            return true;
-        } else {
-            // Créer un nouveau joueur
-            const { data: newPlayer, error: insertError } = await supabaseClient
+
+        if (selectError && selectError.code !== 'PGRST116') throw selectError;
+
+        if (!existing) {
+            const { error: insertError } = await supabaseClient
                 .from('scores')
-                .insert([
-                    { 
-                        pseudo: pseudo, 
-                        facile: 0, 
-                        intermediaire: 0, 
-                        difficile: 0 
-                    }
-                ])
-                .select()
-                .single();
-            
+                .insert([{ pseudo, facile: 0, intermediaire: 0, difficile: 0 }]);
             if (insertError) throw insertError;
-            
-            console.log(`✅ Nouveau joueur "${pseudo}" créé avec succès !`);
-            return true;
-        }
-        
-    } catch (error) {
-        console.error('❌ Erreur lors de la création/récupération du joueur:', error);
-        
-        if (error.code === '23505') {
-            // Erreur de contrainte unique - le pseudo existe déjà
-            alert(`Le pseudo "${pseudo}" existe déjà. Connexion en cours...`);
-            return true;
+            console.log(`✅ Nouveau joueur "${pseudo}" créé.`);
         } else {
-            alert('Erreur lors de la connexion à la base de données. Veuillez réessayer.');
-            return false;
+            console.log(`✅ Joueur "${pseudo}" retrouvé.`);
         }
+        return true;
+
+    } catch (error) {
+        console.error('❌ Erreur joueur :', error);
+        if (error.code === '23505') return true; // pseudo déjà pris → OK
+        alert('Erreur de connexion. Réessaie.');
+        return false;
     }
 }
 
-// Charger les mots depuis Supabase
+// =====================================================
+// CHARGER LES MOTS DEPUIS SUPABASE
+// La table "mots" a UNE ligne par mot (colonne "liste")
+// et une colonne "niveau" (1, 2 ou 3)
+// =====================================================
 async function loadWords() {
     try {
         const { data, error } = await supabaseClient
             .from('mots')
             .select('liste')
             .eq('niveau', currentLevel);
-        
+
         if (error) throw error;
-        
+
         if (data && data.length > 0) {
-            // Récupérer la liste de mots du niveau sélectionné
-            const wordString = data[0].liste;
-            const allWords = wordString.split(',').map(word => word.trim().toUpperCase());
-            
-            // Prendre 8 mots aléatoires
-            wordsToFind = shuffleArray(allWords).slice(0, 8);
-            
-            console.log(`✅ Mots chargés depuis la base de données (Niveau ${currentLevel})`);
-            console.log('Mots à trouver:', wordsToFind);
+            // Chaque ligne = 1 mot dans la colonne "liste"
+            const allWords = data
+                .map(row => row.liste.trim().toUpperCase())
+                .filter(w => w.length > 0);
+
+            const config  = LEVEL_CONFIG[currentLevel];
+            const maxFit  = Math.max(config.rows, config.cols); // sécurité longueur
+            const eligible = allWords.filter(w => w.length <= maxFit);
+
+            // On prend au max 8 mots aléatoires qui rentrent dans la grille
+            wordsToFind = shuffleArray(eligible).slice(0, 8);
+
+            console.log(`✅ Mots niveau ${currentLevel} :`, wordsToFind);
         } else {
             throw new Error('Aucun mot trouvé pour ce niveau');
         }
-        
+
     } catch (error) {
-        console.error('❌ Erreur lors du chargement des mots:', error);
-        // Mots de secours si la connexion échoue
-        const defaultWords = {
-            1: ['CHAT', 'CHIEN', 'SOLEIL', 'LUNE', 'OISEAU', 'FLEUR', 'ARBRE', 'MAISON'],
-            2: ['ORDINATEUR', 'CLAVIER', 'SOURIS', 'ECRAN', 'IMPRIMANTE', 'SCANNER', 'DISQUE', 'RESEAU'],
-            3: ['ALGORITHME', 'PROGRAMMATION', 'DEVELOPPEUR', 'ARCHITECTURE', 'FRAMEWORK', 'DATABASE', 'INTERFACE', 'PROTOCOL']
+        console.error('❌ Erreur chargement mots :', error);
+        const fallback = {
+            1: ['CHAT', 'CHIEN', 'LUNE', 'ARBRE', 'FLEUR', 'OISEAU', 'MAISON', 'SOLEIL'],
+            2: ['CLAVIER', 'SOURIS', 'ECRAN', 'RESEAU', 'DISQUE', 'SCANNER', 'SERVEUR', 'FICHIER'],
+            3: ['ALGORITHME', 'FRAMEWORK', 'DATABASE', 'INTERFACE', 'PROTOCOLE', 'VARIABLE', 'FONCTION', 'BOUCLE'],
         };
-        wordsToFind = defaultWords[currentLevel] || defaultWords[1];
-        console.log('⚠️ Utilisation des mots par défaut');
+        wordsToFind = fallback[currentLevel] || fallback[1];
+        console.warn('⚠️ Mots de secours utilisés');
     }
 }
 
-// Mélanger un tableau
-function shuffleArray(array) {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-}
-
-// Générer la grille 10x15
+// =====================================================
+// GÉNÉRATION DE LA GRILLE (dimensions dynamiques)
+// =====================================================
 function generateGrid() {
-    gridData = Array(15).fill(null).map(() => Array(10).fill(''));
-    
-    // Placer les mots dans la grille
-    wordsToFind.forEach(word => {
-        placeWord(word);
-    });
-    
-    // Remplir les cases vides avec des lettres aléatoires
-    for (let row = 0; row < 15; row++) {
-        for (let col = 0; col < 10; col++) {
-            if (!gridData[row][col]) {
-                gridData[row][col] = getRandomLetter();
-            }
+    const { rows, cols } = LEVEL_CONFIG[currentLevel];
+    gridData = Array(rows).fill(null).map(() => Array(cols).fill(''));
+
+    wordsToFind.forEach(word => placeWord(word, rows, cols));
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            if (!gridData[r][c]) gridData[r][c] = getRandomLetter();
         }
     }
-    
-    // Afficher la grille
-    renderGrid();
+
+    renderGrid(rows, cols);
 }
 
-// Placer un mot dans la grille
-function placeWord(word) {
+// =====================================================
+// PLACER UN MOT
+// =====================================================
+function placeWord(word, rows, cols) {
     const directions = [
-        { dr: 0, dc: 1 },   // Horizontal droite
-        { dr: 1, dc: 0 },   // Vertical bas
-        { dr: 1, dc: 1 },   // Diagonal bas-droite
-        { dr: -1, dc: 1 },  // Diagonal haut-droite
+        { dr: 0,  dc: 1  },  // →
+        { dr: 1,  dc: 0  },  // ↓
+        { dr: 1,  dc: 1  },  // ↘
+        { dr: -1, dc: 1  },  // ↗
     ];
-    
-    let placed = false;
+
+    let placed   = false;
     let attempts = 0;
-    const maxAttempts = 100;
-    
-    while (!placed && attempts < maxAttempts) {
-        const direction = directions[Math.floor(Math.random() * directions.length)];
-        const row = Math.floor(Math.random() * 15);
-        const col = Math.floor(Math.random() * 10);
-        
-        if (canPlaceWord(word, row, col, direction.dr, direction.dc)) {
-            // Placer le mot
+
+    while (!placed && attempts < 200) {
+        const dir = directions[Math.floor(Math.random() * directions.length)];
+        const row = Math.floor(Math.random() * rows);
+        const col = Math.floor(Math.random() * cols);
+
+        if (canPlaceWord(word, row, col, dir.dr, dir.dc, rows, cols)) {
             for (let i = 0; i < word.length; i++) {
-                gridData[row + i * direction.dr][col + i * direction.dc] = word[i];
+                gridData[row + i * dir.dr][col + i * dir.dc] = word[i];
             }
             placed = true;
         }
-        
         attempts++;
     }
+
+    if (!placed) console.warn(`⚠️ Impossible de placer le mot "${word}"`);
 }
 
-// Vérifier si on peut placer un mot
-function canPlaceWord(word, row, col, dr, dc) {
+function canPlaceWord(word, row, col, dr, dc, rows, cols) {
     for (let i = 0; i < word.length; i++) {
         const r = row + i * dr;
         const c = col + i * dc;
-        
-        // Vérifier les limites
-        if (r < 0 || r >= 15 || c < 0 || c >= 10) {
-            return false;
-        }
-        
-        // Vérifier si la case est vide ou contient déjà la bonne lettre
-        if (gridData[r][c] && gridData[r][c] !== word[i]) {
-            return false;
-        }
+        if (r < 0 || r >= rows || c < 0 || c >= cols) return false;
+        if (gridData[r][c] && gridData[r][c] !== word[i]) return false;
     }
-    
     return true;
 }
 
-// Obtenir une lettre aléatoire
 function getRandomLetter() {
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    return letters[Math.floor(Math.random() * letters.length)];
+    return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)];
 }
 
-// Afficher la grille
-function renderGrid() {
+// =====================================================
+// AFFICHAGE DE LA GRILLE
+// =====================================================
+function renderGrid(rows, cols) {
     wordGrid.innerHTML = '';
-    
-    for (let row = 0; row < 15; row++) {
-        for (let col = 0; col < 10; col++) {
+
+    // Mise à jour du CSS Grid en fonction du niveau
+    wordGrid.style.gridTemplateColumns = `repeat(${cols}, 50px)`;
+    wordGrid.style.gridTemplateRows    = `repeat(${rows}, 50px)`;
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
             const cell = document.createElement('div');
-            cell.className = 'grid-cell';
-            cell.textContent = gridData[row][col];
-            cell.dataset.row = row;
-            cell.dataset.col = col;
-            
-            // Events souris
-            cell.addEventListener('mousedown', startSelection);
+            cell.className    = 'grid-cell';
+            cell.textContent  = gridData[r][c];
+            cell.dataset.row  = r;
+            cell.dataset.col  = c;
+
+            cell.addEventListener('mousedown',  startSelection);
             cell.addEventListener('mouseenter', continueSelection);
-            
-            // Events tactiles pour mobile
-            cell.addEventListener('touchstart', handleTouchStart);
-            cell.addEventListener('touchmove', handleTouchMove);
-            cell.addEventListener('touchend', handleTouchEnd);
-            
+            cell.addEventListener('touchstart', handleTouchStart, { passive: false });
+            cell.addEventListener('touchmove',  handleTouchMove,  { passive: false });
+            cell.addEventListener('touchend',   handleTouchEnd,   { passive: false });
+
             wordGrid.appendChild(cell);
         }
     }
-    
+
     document.addEventListener('mouseup', endSelection);
-    document.addEventListener('touchend', handleTouchEnd);
 }
 
-// Gestion tactile pour mobile
+// =====================================================
+// SÉLECTION DES CELLULES
+// =====================================================
+function startSelection(e) {
+    isSelecting = true;
+    selectedCells = [];
+    clearSelection();
+    const cell = e.currentTarget;
+    cell.classList.add('selected');
+    selectedCells.push({ row: +cell.dataset.row, col: +cell.dataset.col, letter: cell.textContent });
+}
+
+function continueSelection(e) {
+    if (!isSelecting) return;
+    const cell = e.currentTarget;
+    const r = +cell.dataset.row;
+    const c = +cell.dataset.col;
+
+    if (selectedCells.some(s => s.row === r && s.col === c)) return;
+
+    if (selectedCells.length > 0) {
+        const last = selectedCells[selectedCells.length - 1];
+        if (isAligned(last.row, last.col, r, c)) {
+            cell.classList.add('selected');
+            selectedCells.push({ row: r, col: c, letter: cell.textContent });
+        }
+    }
+}
+
+function endSelection() {
+    if (!isSelecting) return;
+    isSelecting = false;
+    checkWord();
+}
+
+// Tactile
 function handleTouchStart(e) {
     e.preventDefault();
     isSelecting = true;
     selectedCells = [];
     clearSelection();
-    
-    const cell = e.target;
+    const cell = e.currentTarget;
     cell.classList.add('selected');
-    selectedCells.push({
-        row: parseInt(cell.dataset.row),
-        col: parseInt(cell.dataset.col),
-        letter: cell.textContent
-    });
+    selectedCells.push({ row: +cell.dataset.row, col: +cell.dataset.col, letter: cell.textContent });
 }
 
 function handleTouchMove(e) {
     e.preventDefault();
     if (!isSelecting) return;
-    
     const touch = e.touches[0];
-    const element = document.elementFromPoint(touch.clientX, touch.clientY);
-    
-    if (!element || !element.classList.contains('grid-cell')) return;
-    
-    const currentRow = parseInt(element.dataset.row);
-    const currentCol = parseInt(element.dataset.col);
-    
-    // Vérifier si déjà sélectionné
-    const alreadySelected = selectedCells.some(
-        cell => cell.row === currentRow && cell.col === currentCol
-    );
-    
-    if (alreadySelected) {
-        // Effet visuel pour indiquer qu'on ne peut pas re-sélectionner
-        element.style.animation = 'shake 0.3s ease';
-        setTimeout(() => {
-            element.style.animation = '';
-        }, 300);
-        return;
-    }
-    
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (!el || !el.classList.contains('grid-cell')) return;
+    const r = +el.dataset.row;
+    const c = +el.dataset.col;
+    if (selectedCells.some(s => s.row === r && s.col === c)) return;
     if (selectedCells.length > 0) {
-        const lastCell = selectedCells[selectedCells.length - 1];
-        
-        if (isAligned(lastCell.row, lastCell.col, currentRow, currentCol)) {
-            element.classList.add('selected');
-            selectedCells.push({
-                row: currentRow,
-                col: currentCol,
-                letter: element.textContent
-            });
+        const last = selectedCells[selectedCells.length - 1];
+        if (isAligned(last.row, last.col, r, c)) {
+            el.classList.add('selected');
+            selectedCells.push({ row: r, col: c, letter: el.textContent });
         }
     }
 }
@@ -388,206 +401,117 @@ function handleTouchEnd(e) {
     checkWord();
 }
 
-// Sélection des cellules
-function startSelection(e) {
-    isSelecting = true;
-    selectedCells = [];
-    clearSelection();
-    
-    const cell = e.target;
-    cell.classList.add('selected');
-    selectedCells.push({
-        row: parseInt(cell.dataset.row),
-        col: parseInt(cell.dataset.col),
-        letter: cell.textContent
-    });
-}
-
-function continueSelection(e) {
-    if (!isSelecting) return;
-    
-    const cell = e.target;
-    if (!cell.classList.contains('grid-cell')) return;
-    
-    const currentRow = parseInt(cell.dataset.row);
-    const currentCol = parseInt(cell.dataset.col);
-    
-    // Vérifier si la cellule est déjà sélectionnée
-    const alreadySelected = selectedCells.some(
-        selectedCell => selectedCell.row === currentRow && selectedCell.col === currentCol
-    );
-    
-    if (alreadySelected) {
-        // Effet visuel pour indiquer qu'on ne peut pas re-sélectionner
-        cell.style.animation = 'shake 0.3s ease';
-        setTimeout(() => {
-            cell.style.animation = '';
-        }, 300);
-        return;
-    }
-    
-    // Vérifier si la cellule est alignée avec les précédentes
-    if (selectedCells.length > 0) {
-        const lastCell = selectedCells[selectedCells.length - 1];
-        
-        if (isAligned(lastCell.row, lastCell.col, currentRow, currentCol)) {
-            cell.classList.add('selected');
-            selectedCells.push({
-                row: currentRow,
-                col: currentCol,
-                letter: cell.textContent
-            });
-        }
-    }
-}
-
-function endSelection() {
-    if (!isSelecting) return;
-    isSelecting = false;
-    
-    checkWord();
-}
-
-function isAligned(row1, col1, row2, col2) {
-    const dr = Math.abs(row2 - row1);
-    const dc = Math.abs(col2 - col1);
-    
-    // Horizontal, vertical ou diagonal
-    return (dr === 0 && dc === 1) || 
-           (dr === 1 && dc === 0) || 
-           (dr === 1 && dc === 1);
+function isAligned(r1, c1, r2, c2) {
+    const dr = Math.abs(r2 - r1);
+    const dc = Math.abs(c2 - c1);
+    return (dr === 0 && dc === 1) || (dr === 1 && dc === 0) || (dr === 1 && dc === 1);
 }
 
 function clearSelection() {
     document.querySelectorAll('.grid-cell.selected').forEach(cell => {
-        if (!cell.classList.contains('found')) {
-            cell.classList.remove('selected');
-        }
+        if (!cell.classList.contains('found')) cell.classList.remove('selected');
     });
 }
 
-// Vérifier si le mot sélectionné est valide
+// =====================================================
+// VÉRIFICATION DU MOT
+// =====================================================
 function checkWord() {
-    const selectedWord = selectedCells.map(cell => cell.letter).join('');
+    const selectedWord = selectedCells.map(c => c.letter).join('');
     const reversedWord = selectedWord.split('').reverse().join('');
-    
+
     let foundWord = null;
     if (wordsToFind.includes(selectedWord) && !foundWords.includes(selectedWord)) {
         foundWord = selectedWord;
     } else if (wordsToFind.includes(reversedWord) && !foundWords.includes(reversedWord)) {
         foundWord = reversedWord;
     }
-    
+
     if (foundWord) {
-        // Mot trouvé !
         foundWords.push(foundWord);
         currentScore += foundWord.length * 10;
         scoreValueDisplay.textContent = currentScore;
-        
-        // Marquer les cellules comme trouvées
-        selectedCells.forEach(cell => {
-            const cellElement = document.querySelector(
-                `.grid-cell[data-row="${cell.row}"][data-col="${cell.col}"]`
-            );
-            cellElement.classList.add('found');
-            cellElement.classList.remove('selected');
+
+        selectedCells.forEach(({ row, col }) => {
+            const el = document.querySelector(`.grid-cell[data-row="${row}"][data-col="${col}"]`);
+            if (el) { el.classList.add('found'); el.classList.remove('selected'); }
         });
-        
-        // Mettre à jour la liste des mots
+
         updateWordList(foundWord);
-        
-        // Vérifier si tous les mots sont trouvés
+
         if (foundWords.length === wordsToFind.length) {
-            setTimeout(() => {
-                endGame();
-            }, 1000);
+            setTimeout(endGame, 1000);
         }
     } else {
-        // Pas le bon mot, effacer la sélection
         clearSelection();
     }
-    
+
     selectedCells = [];
 }
 
-// Afficher la liste des mots
+// =====================================================
+// LISTE DES MOTS
+// =====================================================
 function displayWordList() {
     wordList.innerHTML = '';
     wordsToFind.forEach(word => {
         const li = document.createElement('li');
-        li.textContent = word;
+        li.textContent  = word;
         li.dataset.word = word;
         wordList.appendChild(li);
     });
 }
 
-// Mettre à jour la liste des mots
 function updateWordList(word) {
     const li = document.querySelector(`#wordList li[data-word="${word}"]`);
-    if (li) {
-        li.classList.add('found');
-    }
+    if (li) li.classList.add('found');
 }
 
-// Fin de partie
+// =====================================================
+// FIN DE PARTIE
+// =====================================================
 async function endGame() {
-    // Sauvegarder le score dans Supabase
     await saveScore();
-    
-    const levelName = currentLevel === 1 ? 'Facile' : currentLevel === 2 ? 'Intermédiaire' : 'Difficile';
-    alert(`🎉 Bravo ${currentPlayer} ! Tu as trouvé tous les mots !\nNiveau: ${levelName}\nScore de cette partie: ${currentScore}`);
+    const cfg = LEVEL_CONFIG[currentLevel];
+    alert(`🎉 Bravo ${currentPlayer} !\nTous les mots trouvés !\nNiveau : ${cfg.name}\nScore : ${currentScore} pts`);
 }
 
-// Sauvegarder le score
 async function saveScore() {
-    if (!isDatabaseConnected) {
-        console.log('⚠️ Base de données non connectée - Score non sauvegardé');
-        return;
-    }
-    
+    if (!isDatabaseConnected) return;
+
     try {
-        // Récupérer les scores actuels du joueur
-        const { data: playerData, error: fetchError } = await supabaseClient
+        const { data: player, error: fetchError } = await supabaseClient
             .from('scores')
             .select('facile, intermediaire, difficile')
             .eq('pseudo', currentPlayer)
             .single();
-        
+
         if (fetchError) throw fetchError;
-        
-        // Déterminer quelle colonne mettre à jour
-        let updateData = {};
-        const columnName = currentLevel === 1 ? 'facile' : currentLevel === 2 ? 'intermediaire' : 'difficile';
-        const currentBestScore = playerData[columnName] || 0;
-        
-        // Ne mettre à jour que si le nouveau score est meilleur
-        if (currentScore > currentBestScore) {
-            updateData[columnName] = currentScore;
-            
-            const { data, error } = await supabaseClient
+
+        const col       = currentLevel === 1 ? 'facile' : currentLevel === 2 ? 'intermediaire' : 'difficile';
+        const bestScore = player[col] || 0;
+
+        if (currentScore > bestScore) {
+            const { error } = await supabaseClient
                 .from('scores')
-                .update(updateData)
-                .eq('pseudo', currentPlayer)
-                .select();
-            
+                .update({ [col]: currentScore })
+                .eq('pseudo', currentPlayer);
             if (error) throw error;
-            
-            console.log(`✅ Nouveau meilleur score pour ${currentPlayer} (${columnName}): ${currentScore} points`);
-        } else {
-            console.log(`ℹ️ Score actuel (${currentScore}) inférieur au meilleur score (${currentBestScore})`);
+            console.log(`✅ Nouveau record pour ${currentPlayer} (${col}) : ${currentScore} pts`);
         }
     } catch (error) {
-        console.error('❌ Erreur lors de la sauvegarde du score:', error);
+        console.error('❌ Erreur sauvegarde score :', error);
     }
 }
 
-// Nouvelle partie
-function resetGame() {
-    foundWords = [];
-    currentScore = 0;
-    scoreValueDisplay.textContent = currentScore;
-    loadWords().then(() => {
-        generateGrid();
-        displayWordList();
-    });
+// =====================================================
+// UTILITAIRE : mélanger un tableau
+// =====================================================
+function shuffleArray(array) {
+    const a = [...array];
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
 }
