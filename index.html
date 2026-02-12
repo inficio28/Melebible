@@ -27,6 +27,7 @@
                 <label for="pseudo">Entre ton pseudo</label>
                 <input type="text" id="pseudo" placeholder="Ton pseudo ici..." maxlength="20">
                 <button id="startBtn" class="start-button">Commencer la partie</button>
+                <button id="scoresBtn" class="scores-button">📊 Voir les Scores</button>
             </div>
             
             <div class="decorative-grid">
@@ -51,20 +52,74 @@
                     <span class="level-icon">🟢</span>
                     <span class="level-name">Facile</span>
                 </button>
-                <p class="level-detail">Grille 7×7 • 5 mots à trouver</p>
+                <p class="level-detail">Grille 7×7 • 7 mots à trouver</p>
                 
                 <button class="level-btn level-medium" data-level="2">
                     <span class="level-icon">🟡</span>
                     <span class="level-name">Intermédiaire</span>
                 </button>
-                <p class="level-detail">Grille 10×10 • 7 mots à trouver</p>
+                <p class="level-detail">Grille 10×10 • 10 mots à trouver</p>
                 
                 <button class="level-btn level-hard" data-level="3">
                     <span class="level-icon">🔴</span>
                     <span class="level-name">Difficile</span>
                 </button>
-                <p class="level-detail">Grille 10×10 • 10 mots à trouver</p>
+                <p class="level-detail">Grille 10×10 • 15 mots à trouver</p>
+
+                <button class="level-btn level-suicide" data-level="4">
+                    <span class="level-icon">💀</span>
+                    <span class="level-name">Suicide</span>
+                </button>
+                <p class="level-detail">Grille 10×10 • 15 mots CACHÉS (sans liste !)</p>
+
+                <button id="backToHomeBtn" class="back-button">← Retour</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Page Scoreboard -->
+    <div id="scoreboardpage" class="page">
+        <div class="scoreboard-container">
+            <div class="title-wrapper">
+                <h1 class="game-title">🏆 Classements</h1>
+                <p class="game-subtitle">Top 10 des meilleurs temps</p>
+            </div>
+
+            <div class="scoreboard-grid">
+                <div class="scoreboard-section">
+                    <h3 class="scoreboard-title">
+                        <span class="level-icon">🟢</span>
+                        Facile
+                    </h3>
+                    <div id="scoreboardEasy" class="scoreboard-list"></div>
+                </div>
+
+                <div class="scoreboard-section">
+                    <h3 class="scoreboard-title">
+                        <span class="level-icon">🟡</span>
+                        Intermédiaire
+                    </h3>
+                    <div id="scoreboardMedium" class="scoreboard-list"></div>
+                </div>
+
+                <div class="scoreboard-section">
+                    <h3 class="scoreboard-title">
+                        <span class="level-icon">🔴</span>
+                        Difficile
+                    </h3>
+                    <div id="scoreboardHard" class="scoreboard-list"></div>
+                </div>
+
+                <div class="scoreboard-section">
+                    <h3 class="scoreboard-title">
+                        <span class="level-icon">💀</span>
+                        Suicide
+                    </h3>
+                    <div id="scoreboardSuicide" class="scoreboard-list"></div>
+                </div>
+            </div>
+
+            <button id="backToHomeBtnScore" class="back-button-score">← Retour à l'accueil</button>
         </div>
     </div>
 
@@ -75,6 +130,7 @@
                 <div class="player-info">
                     <span class="player-name" id="playerName"></span>
                     <span class="level-badge" id="levelBadge"></span>
+                    <span class="timer-display">⏱️ <span id="timerValue">00:00</span></span>
                     <span class="score-display">Score: <span id="scoreValue">0</span></span>
                 </div>
                 <button id="newGameBtn" class="new-game-btn">Nouveau niveau</button>
