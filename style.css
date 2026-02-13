@@ -235,6 +235,58 @@ body {
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
 }
 
+/* SÉLECTEUR DE THÈME */
+.theme-selector-container {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    border: 2px solid rgba(255, 107, 53, 0.2);
+}
+
+.theme-selector-container label {
+    display: block;
+    color: var(--secondary);
+    font-weight: bold;
+    font-size: clamp(0.9rem, 3vw, 1.1rem);
+    margin-bottom: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.theme-select {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    font-size: clamp(0.9rem, 3vw, 1rem);
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    color: var(--light);
+    background: rgba(45, 27, 78, 0.8);
+    border: 2px solid var(--primary);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.theme-select:hover {
+    border-color: var(--secondary);
+    background: rgba(45, 27, 78, 0.95);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 107, 53, 0.3);
+}
+
+.theme-select:focus {
+    border-color: var(--success);
+    box-shadow: 0 0 0 3px rgba(6, 214, 160, 0.2);
+}
+
+.theme-select option {
+    background: var(--dark);
+    color: var(--light);
+    padding: 0.5rem;
+}
+
 .level-btn {
     display: flex;
     align-items: center;
@@ -250,6 +302,21 @@ body {
     text-align: left;
     position: relative;
     overflow: hidden;
+}
+
+.level-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    filter: grayscale(0.5);
+}
+
+.level-btn:disabled::after {
+    display: none;
+}
+
+.level-btn:disabled:hover {
+    transform: none;
+    box-shadow: none;
 }
 
 .level-btn::after {

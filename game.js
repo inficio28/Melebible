@@ -11,10 +11,10 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // CONFIG PAR NIVEAU
 // =====================================================
 const LEVEL_CONFIG = {
-    1: { rows: 7,  cols: 7,  name: 'Facile',        badgeClass: 'easy',    icon: '🟢', wordCount: 7  },
-    2: { rows: 10, cols: 10, name: 'Intermédiaire', badgeClass: 'medium',  icon: '🟡', wordCount: 10 },
-    3: { rows: 10, cols: 10, name: 'Difficile',     badgeClass: 'hard',    icon: '🔴', wordCount: 15 },
-    4: { rows: 10, cols: 10, name: 'Suicide',       badgeClass: 'suicide', icon: '💀', wordCount: 15 },
+    1: { rows: 7,  cols: 7,  name: 'Facile',        badgeClass: 'easy',    icon: '🟢', wordCount: 10  },
+    2: { rows: 10, cols: 10, name: 'Intermédiaire', badgeClass: 'medium',  icon: '🟡', wordCount: 15 },
+    3: { rows: 10, cols: 10, name: 'Difficile',     badgeClass: 'hard',    icon: '🔴', wordCount: 20 },
+    4: { rows: 10, cols: 10, name: 'Mode Mystère',  badgeClass: 'suicide', icon: '❓', wordCount: 20 },
 };
 
 // =====================================================
@@ -42,8 +42,9 @@ let foundWords         = [];
 let gridData           = [];
 let selectedCells      = [];
 let isSelecting        = false;
-let selectionDirection = null; // Pour forcer la sélection linéaire
+let selectionDirection = null;
 let isDatabaseConnected = false;
+let isGameLoading      = false;
 
 // ⏱️ VARIABLES POUR LE CHRONOMÈTRE
 let timerInterval      = null;
@@ -133,8 +134,17 @@ pseudoInput.addEventListener('keypress', (e) => {
 });
 
 document.querySelectorAll('.level-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        currentLevel = parseInt(btn.dataset.level);
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        
+        if (isGameLoading) {
+            console.log('⏳ Chargement en cours, veuillez patienter...');
+            return;
+        }
+        
+        const level = parseInt(btn.dataset.level);
+        console.log(`🎮 Bouton niveau ${level} cliqué`);
+        currentLevel = level;
         startGame();
     });
 });
@@ -192,7 +202,6 @@ async function createOrGetPlayer(pseudo) {
         if (selectError && selectError.code !== 'PGRST116') throw selectError;
 
         if (!existing) {
-            // Créer nouveau joueur
             const { error: insertError } = await supabaseClient
                 .from('scores')
                 .insert([{ 
@@ -207,7 +216,6 @@ async function createOrGetPlayer(pseudo) {
             if (insertError) throw insertError;
             console.log(`✅ Nouveau joueur "${pseudo}" créé.`);
         } else {
-            // Mettre à jour la connexion
             const { error: updateError } = await supabaseClient
                 .from('scores')
                 .update({ 
@@ -329,19 +337,17 @@ function displayLevelScores(scores, level, container) {
 }
 
 // =====================================================
-// CHARGER LES MOTS DEPUIS SUPABASE
+// CHARGER LES MOTS DEPUIS SUPABASE - OPTIMISÉ
 // =====================================================
 async function loadWords() {
     try {
-        // Pour le mode suicide, on charge le niveau 3 (difficile)
-        const levelToLoad = currentLevel === 4 ? 3 : currentLevel;
-        
         const { data, error } = await supabaseClient
             .from('mots')
-            .select('liste')
-            .eq('niveau', levelToLoad);
+            .select('liste');
 
         if (error) throw error;
+
+        console.log(`🔍 Requête BDD - Résultats: ${data ? data.length : 0}`);
 
         if (data && data.length > 0) {
             const allWords = data
@@ -350,27 +356,54 @@ async function loadWords() {
 
             const config  = LEVEL_CONFIG[currentLevel];
             const maxFit  = Math.max(config.rows, config.cols);
-            const eligible = allWords.filter(w => w.length <= maxFit);
+            
+            // Filtrer par taille ET privilégier les mots courts/moyens pour un meilleur placement
+            const eligible = allWords.filter(w => w.length >= 3 && w.length <= maxFit);
 
-            wordsToFind = shuffleArray(eligible).slice(0, config.wordCount);
+            console.log(`📏 Filtrage (3-${maxFit} lettres) : ${allWords.length} → ${eligible.length} mots éligibles`);
 
-            console.log(`✅ Mots niveau ${currentLevel} (${config.wordCount} mots) :`, wordsToFind);
+            if (eligible.length < config.wordCount) {
+                throw new Error(`Pas assez de mots disponibles.\n\nTrouvés: ${eligible.length} mots\nRequis: ${config.wordCount} mots`);
+            }
+
+            // OPTIMISATION MAJEURE : Charger beaucoup plus de mots pour avoir un meilleur choix
+            // On prend 5x le nombre nécessaire pour maximiser les chances de placement
+            const poolSize = Math.min(config.wordCount * 5, eligible.length);
+            const wordPool = shuffleArray(eligible).slice(0, poolSize);
+            
+            console.log(`✅ Pool de ${poolSize} mots disponibles pour sélection optimale`);
+            
+            // On va essayer de placer les mots et sélectionner les meilleurs
+            wordsToFind = wordPool;
+            
         } else {
-            throw new Error('Aucun mot trouvé pour ce niveau');
+            throw new Error(`Aucun mot trouvé dans la base de données`);
         }
 
     } catch (error) {
-        console.error('❌ Erreur chargement mots :', error);
+        console.error('❌ ERREUR chargement mots :', error.message);
+        
+        if (error.message.includes('Pas assez de mots')) {
+            alert(`⚠️ ${error.message}\n\nVeuillez essayer un niveau plus facile.`);
+            showPage(levelpage);
+            isGameLoading = false;
+            return;
+        }
+        
+        if (error.message.includes('Aucun mot trouvé')) {
+            alert(`⚠️ ${error.message}\n\nUtilisation des mots par défaut.`);
+        }
+        
         loadFallbackWords();
     }
 }
 
 function loadFallbackWords() {
     const fallbackWords = {
-        1: ['CHAT', 'SOLEIL', 'FLEUR', 'MAISON', 'JARDIN', 'VOITURE', 'ARBRE'],
-        2: ['MONTAGNE', 'VOYAGE', 'LUMIERE', 'FORET', 'OCEAN', 'RIVIERE', 'ETOILE', 'PLANETE', 'CASCADE', 'VOLCAN'],
-        3: ['AVENTURE', 'HISTOIRE', 'MYSTERE', 'LEGENDE', 'COSMOS', 'NATURE', 'HORIZON', 'CASCADE', 'VOLCAN', 'DESERT', 'SAVANE', 'JUNGLE', 'TOUNDRA', 'PRAIRIE', 'COLLINE'],
-        4: ['AVENTURE', 'HISTOIRE', 'MYSTERE', 'LEGENDE', 'COSMOS', 'NATURE', 'HORIZON', 'CASCADE', 'VOLCAN', 'DESERT', 'SAVANE', 'JUNGLE', 'TOUNDRA', 'PRAIRIE', 'COLLINE']
+        1: ['CHAT', 'SOLEIL', 'FLEUR', 'MAISON', 'JARDIN', 'VOITURE', 'ARBRE', 'CHIEN', 'TABLE', 'PORTE'],
+        2: ['MONTAGNE', 'VOYAGE', 'LUMIERE', 'FORET', 'OCEAN', 'RIVIERE', 'ETOILE', 'PLANETE', 'CASCADE', 'VOLCAN', 'DESERT', 'SAVANE', 'JUNGLE', 'TOUNDRA', 'PRAIRIE'],
+        3: ['AVENTURE', 'HISTOIRE', 'MYSTERE', 'LEGENDE', 'COSMOS', 'NATURE', 'HORIZON', 'CASCADE', 'VOLCAN', 'DESERT', 'SAVANE', 'JUNGLE', 'TOUNDRA', 'PRAIRIE', 'COLLINE', 'VALLEE', 'MONTAGNE', 'RIVIERE', 'OCEAN', 'FORET'],
+        4: ['AVENTURE', 'HISTOIRE', 'MYSTERE', 'LEGENDE', 'COSMOS', 'NATURE', 'HORIZON', 'CASCADE', 'VOLCAN', 'DESERT', 'SAVANE', 'JUNGLE', 'TOUNDRA', 'PRAIRIE', 'COLLINE', 'VALLEE', 'MONTAGNE', 'RIVIERE', 'OCEAN', 'FORET']
     };
     wordsToFind = fallbackWords[currentLevel] || fallbackWords[1];
     console.log('⚠️ Utilisation des mots par défaut:', wordsToFind);
@@ -380,70 +413,219 @@ function loadFallbackWords() {
 // DÉMARRAGE DU JEU
 // =====================================================
 async function startGame() {
-    foundWords = [];
-    currentScore = 0;
-    scoreValueDisplay.textContent = '0';
-
-    const cfg = LEVEL_CONFIG[currentLevel];
-    playerNameDisplay.textContent = currentPlayer;
-    levelBadge.textContent = `${cfg.icon} ${cfg.name}`;
-    levelBadge.className = `level-badge ${cfg.badgeClass}`;
-
-    await loadWords();
-    console.log('🎯 Mots à trouver :', wordsToFind);
-
-    buildGrid(cfg.rows, cfg.cols, wordsToFind);
-    renderGrid(cfg.rows, cfg.cols);
-    displayWordList();
+    if (isGameLoading) {
+        console.log('⏳ Un jeu est déjà en cours de chargement');
+        return;
+    }
     
-    startTimer();
-    showPage(gamepage);
+    isGameLoading = true;
+    console.log(`🚀 Démarrage du jeu - Niveau ${currentLevel}`);
+    
+    try {
+        foundWords = [];
+        currentScore = 0;
+        scoreValueDisplay.textContent = '0';
+
+        const cfg = LEVEL_CONFIG[currentLevel];
+        playerNameDisplay.textContent = currentPlayer;
+        
+        levelBadge.textContent = `${cfg.icon} ${cfg.name}`;
+        levelBadge.className = `level-badge ${cfg.badgeClass}`;
+
+        console.log('📥 Chargement des mots...');
+        await loadWords();
+        
+        if (!wordsToFind || wordsToFind.length === 0) {
+            console.error('❌ Aucun mot chargé');
+            alert('❌ Erreur : Aucun mot n\'a pu être chargé. Retour à la sélection.');
+            showPage(levelpage);
+            return;
+        }
+        
+        console.log(`🏗️ Construction de la grille avec ${cfg.wordCount} mots requis...`);
+
+        // CHANGEMENT MAJEUR : On passe le nombre de mots requis ET le pool de mots
+        const success = buildGridOptimized(cfg.rows, cfg.cols, wordsToFind, cfg.wordCount);
+        
+        if (!success) {
+            alert('❌ Impossible de générer une grille valide. Essayez de nouveau.');
+            showPage(levelpage);
+            return;
+        }
+        
+        console.log(`✅ Grille créée avec exactement ${wordsToFind.length} mots`);
+        console.log('🎨 Rendu de la grille...');
+        renderGrid(cfg.rows, cfg.cols);
+        
+        console.log('📝 Affichage de la liste de mots...');
+        displayWordList();
+        
+        console.log('⏱️ Démarrage du chronomètre...');
+        startTimer();
+        
+        console.log('✅ Affichage de la page de jeu');
+        showPage(gamepage);
+        
+        console.log('🎮 Jeu prêt !');
+    } finally {
+        isGameLoading = false;
+    }
 }
 
 // =====================================================
-// CONSTRUCTION DE LA GRILLE AVEC PLACEMENT MULTI-DIRECTIONNEL
+// CONSTRUCTION OPTIMISÉE DE LA GRILLE
 // =====================================================
-function buildGrid(rows, cols, words) {
-    // Initialiser grille vide
-    gridData = Array(rows).fill(null).map(() => Array(cols).fill(''));
-
-    const placedWords = [];
-    const maxAttempts = 100;
-
-    // Essayer de placer chaque mot
-    for (const word of words) {
-        let placed = false;
+function buildGridOptimized(rows, cols, wordPool, targetCount) {
+    const maxAttempts = 50;
+    
+    console.log(`🎯 Objectif: placer exactement ${targetCount} mots dans grille ${rows}x${cols}`);
+    console.log(`📦 Pool disponible: ${wordPool.length} mots`);
+    
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        // Initialiser grille vide
+        gridData = Array(rows).fill(null).map(() => Array(cols).fill(''));
         
-        for (let attempt = 0; attempt < maxAttempts && !placed; attempt++) {
-            // Choisir une direction aléatoire
-            const direction = DIRECTIONS[Math.floor(Math.random() * DIRECTIONS.length)];
+        // Mélanger le pool et prendre un sous-ensemble différent à chaque tentative
+        const shuffledPool = shuffleArray(wordPool);
+        
+        // Trier par longueur décroissante (placer les longs d'abord)
+        const sortedWords = shuffledPool.sort((a, b) => b.length - a.length);
+        
+        const placedWords = [];
+        
+        // Essayer de placer les mots un par un
+        for (const word of sortedWords) {
+            if (placedWords.length >= targetCount) {
+                break; // On a atteint notre objectif !
+            }
             
-            // Choisir une position de départ aléatoire
-            const startRow = Math.floor(Math.random() * rows);
-            const startCol = Math.floor(Math.random() * cols);
-            
-            // Vérifier si le mot peut être placé
-            if (canPlaceWord(word, startRow, startCol, direction, rows, cols)) {
-                placeWord(word, startRow, startCol, direction);
-                placedWords.push({
-                    word,
-                    startRow,
-                    startCol,
-                    direction: direction.name
-                });
-                placed = true;
+            const placed = tryPlaceWordOptimized(word, rows, cols);
+            if (placed) {
+                placedWords.push(word);
             }
         }
         
-        if (!placed) {
-            console.warn(`⚠️ Impossible de placer le mot "${word}"`);
+        console.log(`🔄 Tentative ${attempt}/${maxAttempts}: ${placedWords.length}/${targetCount} mots placés`);
+        
+        // Si on a exactement le bon nombre de mots
+        if (placedWords.length === targetCount) {
+            wordsToFind = placedWords;
+            
+            // Vérification finale
+            if (verifyAllWordsInGrid()) {
+                fillEmptyCells();
+                console.log('✅ SUCCÈS ! Grille complète avec le bon nombre de mots');
+                return true;
+            }
         }
     }
+    
+    console.error(`❌ Échec après ${maxAttempts} tentatives`);
+    return false;
+}
 
-    console.log('📍 Mots placés :', placedWords);
+function tryPlaceWordOptimized(word, rows, cols) {
+    // Calculer TOUTES les positions possibles
+    const possiblePlacements = [];
+    
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            for (const direction of DIRECTIONS) {
+                if (canPlaceWord(word, r, c, direction, rows, cols)) {
+                    // Calculer un score de qualité pour ce placement
+                    const score = calculatePlacementScore(word, r, c, direction, rows, cols);
+                    possiblePlacements.push({ row: r, col: c, direction, score });
+                }
+            }
+        }
+    }
+    
+    if (possiblePlacements.length === 0) {
+        return false;
+    }
+    
+    // Trier par score décroissant et choisir parmi les meilleurs
+    possiblePlacements.sort((a, b) => b.score - a.score);
+    
+    // Choisir aléatoirement parmi les 30% meilleurs placements
+    const topChoices = Math.max(1, Math.floor(possiblePlacements.length * 0.3));
+    const randomChoice = possiblePlacements[Math.floor(Math.random() * topChoices)];
+    
+    placeWord(word, randomChoice.row, randomChoice.col, randomChoice.direction);
+    return true;
+}
 
-    // Remplir les cases vides avec des lettres aléatoires
-    fillEmptyCells();
+function calculatePlacementScore(word, startRow, startCol, direction, rows, cols) {
+    let score = 0;
+    const { dr, dc } = direction;
+    
+    // Bonus pour les placements qui réutilisent des lettres existantes
+    for (let i = 0; i < word.length; i++) {
+        const r = startRow + (i * dr);
+        const c = startCol + (i * dc);
+        
+        if (gridData[r][c] === word[i]) {
+            score += 10; // Réutilisation de lettre = bon !
+        }
+    }
+    
+    // Bonus pour les placements centraux (évite les bords)
+    const centerRow = rows / 2;
+    const centerCol = cols / 2;
+    const distanceFromCenter = Math.abs(startRow - centerRow) + Math.abs(startCol - centerCol);
+    score += Math.max(0, 10 - distanceFromCenter);
+    
+    // Bonus pour la variété de direction
+    score += Math.random() * 5;
+    
+    return score;
+}
+
+// =====================================================
+// VÉRIFICATION QUE TOUS LES MOTS SONT DANS LA GRILLE
+// =====================================================
+function verifyAllWordsInGrid() {
+    for (const word of wordsToFind) {
+        let found = false;
+        
+        for (let r = 0; r < gridData.length && !found; r++) {
+            for (let c = 0; c < gridData[0].length && !found; c++) {
+                for (const direction of DIRECTIONS) {
+                    if (checkWordAtPosition(word, r, c, direction)) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (!found) {
+            console.error(`❌ Le mot "${word}" n'est PAS dans la grille !`);
+            return false;
+        }
+    }
+    
+    console.log('✅ Tous les mots sont bien présents dans la grille');
+    return true;
+}
+
+function checkWordAtPosition(word, startRow, startCol, direction) {
+    const { dr, dc } = direction;
+    
+    for (let i = 0; i < word.length; i++) {
+        const r = startRow + (i * dr);
+        const c = startCol + (i * dc);
+        
+        if (r < 0 || r >= gridData.length || c < 0 || c >= gridData[0].length) {
+            return false;
+        }
+        
+        if (gridData[r][c] !== word[i]) {
+            return false;
+        }
+    }
+    
+    return true;
 }
 
 function canPlaceWord(word, startRow, startCol, direction, rows, cols) {
@@ -453,12 +635,10 @@ function canPlaceWord(word, startRow, startCol, direction, rows, cols) {
         const r = startRow + (i * dr);
         const c = startCol + (i * dc);
         
-        // Vérifier limites
         if (r < 0 || r >= rows || c < 0 || c >= cols) {
             return false;
         }
         
-        // Vérifier si la case est vide ou contient la même lettre
         const currentCell = gridData[r][c];
         if (currentCell !== '' && currentCell !== word[i]) {
             return false;
@@ -480,7 +660,6 @@ function placeWord(word, startRow, startCol, direction) {
 
 function fillEmptyCells() {
     const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    
     for (let r = 0; r < gridData.length; r++) {
         for (let c = 0; c < gridData[r].length; c++) {
             if (gridData[r][c] === '') {
@@ -495,29 +674,9 @@ function fillEmptyCells() {
 // =====================================================
 function renderGrid(rows, cols) {
     wordGrid.innerHTML = '';
-    
-    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-    const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
-    
-    const isMobile = vw < 768;
-    const isLandscape = vw > vh;
-    
-    let availableWidth = vw - 40;
-    let availableHeight = vh - 350;
-    
-    if (isMobile && isLandscape) {
-        availableHeight = vh - 180;
-    }
-    
-    const maxCellWidth = Math.floor(availableWidth / cols) - 4;
-    const maxCellHeight = Math.floor(availableHeight / rows) - 4;
-    const cellSize = Math.min(maxCellWidth, maxCellHeight, 70);
-    
-    const fontSize = Math.max(cellSize * 0.45, 14);
-    
-    wordGrid.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
-    wordGrid.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
-    
+    wordGrid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    wordGrid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             const cell = document.createElement('div');
@@ -525,14 +684,11 @@ function renderGrid(rows, cols) {
             cell.textContent = gridData[r][c];
             cell.dataset.row = r;
             cell.dataset.col = c;
-            cell.style.fontSize = `${fontSize}px`;
             
-            // Desktop events
-            cell.addEventListener('mousedown', startSelection);
-            cell.addEventListener('mouseenter', continueSelection);
-            cell.addEventListener('mouseup', endSelection);
+            cell.addEventListener('mousedown', handleMouseDown);
+            cell.addEventListener('mouseenter', handleMouseEnter);
+            cell.addEventListener('mouseup', handleMouseUp);
             
-            // Mobile events
             cell.addEventListener('touchstart', handleTouchStart, { passive: false });
             cell.addEventListener('touchmove', handleTouchMove, { passive: false });
             cell.addEventListener('touchend', handleTouchEnd, { passive: false });
@@ -542,127 +698,34 @@ function renderGrid(rows, cols) {
     }
 }
 
-let resizeTimeout;
-window.addEventListener('resize', () => {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(() => {
-        if (gamepage.classList.contains('active')) {
-            const { rows, cols } = LEVEL_CONFIG[currentLevel];
-            renderGrid(rows, cols);
-        }
-    }, 250);
-});
-
 // =====================================================
-// SÉLECTION DES CELLULES AVEC DIRECTION STRICTE
+// SÉLECTION À LA SOURIS
 // =====================================================
-function startSelection(e) {
-    isSelecting = true;
-    selectedCells = [];
-    selectionDirection = null; // Réinitialiser la direction
-    clearSelection();
-    
-    const cell = e.currentTarget;
-    cell.classList.add('selected');
-    selectedCells.push({ 
-        row: +cell.dataset.row, 
-        col: +cell.dataset.col, 
-        letter: cell.textContent 
-    });
-}
-
-function continueSelection(e) {
-    if (!isSelecting) return;
-    
-    const cell = e.currentTarget;
-    const r = +cell.dataset.row;
-    const c = +cell.dataset.col;
-
-    // Si on clique sur la cellule précédente, on recule (désélectionne la dernière)
-    if (selectedCells.length > 1) {
-        const previous = selectedCells[selectedCells.length - 2];
-        if (previous.row === r && previous.col === c) {
-            // Retirer la dernière cellule sélectionnée
-            const removed = selectedCells.pop();
-            const removedCell = document.querySelector(`.grid-cell[data-row="${removed.row}"][data-col="${removed.col}"]`);
-            if (removedCell && !removedCell.classList.contains('found')) {
-                removedCell.classList.remove('selected');
-            }
-            return;
-        }
-    }
-
-    // Ne pas re-sélectionner la même cellule consécutivement
-    if (selectedCells.length > 0) {
-        const last = selectedCells[selectedCells.length - 1];
-        if (last.row === r && last.col === c) return;
-    }
-
-    if (selectedCells.length === 1) {
-        // Deuxième cellule : déterminer la direction
-        const first = selectedCells[0];
-        const direction = getDirection(first.row, first.col, r, c);
-        
-        if (direction) {
-            selectionDirection = direction;
-            cell.classList.add('selected');
-            selectedCells.push({ row: r, col: c, letter: cell.textContent });
-        }
-    } else if (selectedCells.length > 1 && selectionDirection) {
-        // Cellules suivantes : vérifier qu'on est dans la continuité linéaire
-        const last = selectedCells[selectedCells.length - 1];
-        
-        // Calculer la position attendue dans la direction
-        const expectedRow = last.row + selectionDirection.dr;
-        const expectedCol = last.col + selectionDirection.dc;
-        
-        // On ne peut sélectionner QUE la cellule suivante dans la direction
-        if (r === expectedRow && c === expectedCol) {
-            cell.classList.add('selected');
-            selectedCells.push({ row: r, col: c, letter: cell.textContent });
-        }
-    }
-}
-
-function endSelection() {
-    if (!isSelecting) return;
-    isSelecting = false;
-    selectionDirection = null;
-    checkWord();
-}
-
-function handleTouchStart(e) {
-    e.preventDefault();
+function handleMouseDown(e) {
     isSelecting = true;
     selectedCells = [];
     selectionDirection = null;
     clearSelection();
     
-    const cell = e.currentTarget;
-    cell.classList.add('selected');
-    selectedCells.push({ 
-        row: +cell.dataset.row, 
-        col: +cell.dataset.col, 
-        letter: cell.textContent 
+    const el = e.currentTarget;
+    el.classList.add('selected');
+    selectedCells.push({
+        row: +el.dataset.row,
+        col: +el.dataset.col,
+        letter: el.textContent
     });
 }
 
-function handleTouchMove(e) {
-    e.preventDefault();
+function handleMouseEnter(e) {
     if (!isSelecting) return;
     
-    const touch = e.touches[0];
-    const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    if (!el || !el.classList.contains('grid-cell')) return;
-    
+    const el = e.currentTarget;
     const r = +el.dataset.row;
     const c = +el.dataset.col;
 
-    // Si on touche la cellule précédente, on recule (désélectionne la dernière)
     if (selectedCells.length > 1) {
         const previous = selectedCells[selectedCells.length - 2];
         if (previous.row === r && previous.col === c) {
-            // Retirer la dernière cellule sélectionnée
             const removed = selectedCells.pop();
             const removedCell = document.querySelector(`.grid-cell[data-row="${removed.row}"][data-col="${removed.col}"]`);
             if (removedCell && !removedCell.classList.contains('found')) {
@@ -672,7 +735,6 @@ function handleTouchMove(e) {
         }
     }
 
-    // Ne pas re-sélectionner la même cellule consécutivement
     if (selectedCells.length > 0) {
         const last = selectedCells[selectedCells.length - 1];
         if (last.row === r && last.col === c) return;
@@ -689,12 +751,85 @@ function handleTouchMove(e) {
         }
     } else if (selectedCells.length > 1 && selectionDirection) {
         const last = selectedCells[selectedCells.length - 1];
-        
-        // Calculer la position attendue dans la direction
         const expectedRow = last.row + selectionDirection.dr;
         const expectedCol = last.col + selectionDirection.dc;
         
-        // On ne peut sélectionner QUE la cellule suivante dans la direction
+        if (r === expectedRow && c === expectedCol) {
+            el.classList.add('selected');
+            selectedCells.push({ row: r, col: c, letter: el.textContent });
+        }
+    }
+}
+
+function handleMouseUp() {
+    if (!isSelecting) return;
+    isSelecting = false;
+    selectionDirection = null;
+    checkWord();
+}
+
+// =====================================================
+// SÉLECTION TACTILE
+// =====================================================
+function handleTouchStart(e) {
+    e.preventDefault();
+    isSelecting = true;
+    selectedCells = [];
+    selectionDirection = null;
+    clearSelection();
+    
+    const el = e.currentTarget;
+    el.classList.add('selected');
+    selectedCells.push({
+        row: +el.dataset.row,
+        col: +el.dataset.col,
+        letter: el.textContent
+    });
+}
+
+function handleTouchMove(e) {
+    if (!isSelecting) return;
+    e.preventDefault();
+    
+    const touch = e.touches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    
+    if (!el || !el.classList.contains('grid-cell')) return;
+    
+    const r = +el.dataset.row;
+    const c = +el.dataset.col;
+
+    if (selectedCells.length > 1) {
+        const previous = selectedCells[selectedCells.length - 2];
+        if (previous.row === r && previous.col === c) {
+            const removed = selectedCells.pop();
+            const removedCell = document.querySelector(`.grid-cell[data-row="${removed.row}"][data-col="${removed.col}"]`);
+            if (removedCell && !removedCell.classList.contains('found')) {
+                removedCell.classList.remove('selected');
+            }
+            return;
+        }
+    }
+
+    if (selectedCells.length > 0) {
+        const last = selectedCells[selectedCells.length - 1];
+        if (last.row === r && last.col === c) return;
+    }
+
+    if (selectedCells.length === 1) {
+        const first = selectedCells[0];
+        const direction = getDirection(first.row, first.col, r, c);
+        
+        if (direction) {
+            selectionDirection = direction;
+            el.classList.add('selected');
+            selectedCells.push({ row: r, col: c, letter: el.textContent });
+        }
+    } else if (selectedCells.length > 1 && selectionDirection) {
+        const last = selectedCells[selectedCells.length - 1];
+        const expectedRow = last.row + selectionDirection.dr;
+        const expectedCol = last.col + selectionDirection.dc;
+        
         if (r === expectedRow && c === expectedCol) {
             el.classList.add('selected');
             selectedCells.push({ row: r, col: c, letter: el.textContent });
@@ -710,16 +845,13 @@ function handleTouchEnd(e) {
     checkWord();
 }
 
-// Détermine la direction entre deux cellules
 function getDirection(r1, c1, r2, c2) {
     const dr = r2 - r1;
     const dc = c2 - c1;
     
-    // Normaliser la direction
     const normDr = dr === 0 ? 0 : (dr > 0 ? 1 : -1);
     const normDc = dc === 0 ? 0 : (dc > 0 ? 1 : -1);
     
-    // Trouver la direction correspondante
     for (const dir of DIRECTIONS) {
         if (dir.dr === normDr && dir.dc === normDc) {
             return dir;
@@ -754,7 +886,6 @@ function checkWord() {
     if (foundWord) {
         foundWords.push(foundWord);
         
-        // Marquer les cellules comme trouvées (SANS bloquer la réutilisation)
         selectedCells.forEach(({ row, col }) => {
             const el = document.querySelector(`.grid-cell[data-row="${row}"][data-col="${col}"]`);
             if (el) { 
@@ -801,12 +932,11 @@ function displayWordList() {
 
 function updateWordList(word) {
     if (currentLevel === 4) {
-        // MODE SUICIDE : Afficher le mot trouvé dans la case
         const index = foundWords.length - 1;
         const checkbox = document.querySelector(`.suicide-checkbox[data-index="${index}"]`);
         if (checkbox) {
             checkbox.classList.add('checked');
-            checkbox.textContent = word; // Afficher le mot
+            checkbox.textContent = word;
         }
     } else {
         const item = document.querySelector(`.word-item[data-word="${word}"]`);
