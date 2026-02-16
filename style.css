@@ -823,46 +823,50 @@ body {
     justify-content: center;
     align-items: center;
     width: 100%;
-    padding: clamp(0.3rem, 1vw, 0.8rem);
-    overflow: hidden;
+    padding: clamp(0.2rem, 0.8vw, 0.6rem);
+    overflow: visible;
 }
 
 /* Grille dynamique : dimensions définies via JS */
 .word-grid {
     display: grid;
-    gap: clamp(1px, 0.3vw, 3px);
+    gap: clamp(1px, 0.25vw, 3px);
     background: rgba(255, 255, 255, 0.05);
-    padding: clamp(0.4rem, 1.5vw, 1rem);
-    border-radius: clamp(8px, 2vw, 15px);
-    border: clamp(2px, 0.3vw, 3px) solid var(--primary);
+    padding: clamp(0.3rem, 1vw, 0.8rem);
+    border-radius: clamp(6px, 1.5vw, 12px);
+    border: clamp(2px, 0.25vw, 3px) solid var(--primary);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
     width: fit-content;
-    max-width: min(95vw, 90vh);
+    max-width: 98vw;
     margin: 0 auto;
 }
 
-/* Ajustement responsive de la grille */
-@media (max-width: 768px) {
-    .grid-container {
-        padding: 0.3rem;
-    }
-    
+/* Desktop */
+@media (min-width: 1025px) {
     .word-grid {
-        gap: 2px;
-        padding: clamp(0.4rem, 1.2vw, 0.7rem);
-        border-width: 2px;
-        border-radius: 10px;
-        max-width: 96vw;
+        gap: 3px;
+        padding: 0.8rem;
+        max-width: 90vw;
     }
 }
 
-@media (max-width: 480px) {
+/* Tablette */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .word-grid {
+        gap: 2px;
+        padding: 0.6rem;
+        max-width: 95vw;
+    }
+}
+
+/* Smartphones */
+@media (max-width: 768px) {
     .grid-container {
         padding: 0.2rem;
     }
     
     .word-grid {
-        gap: 1px;
+        gap: 2px;
         padding: 0.4rem;
         border-width: 2px;
         border-radius: 8px;
@@ -870,17 +874,33 @@ body {
     }
 }
 
-@media (max-width: 900px) and (orientation: landscape) {
+/* Petits smartphones */
+@media (max-width: 480px) {
     .grid-container {
-        padding: 0.3rem;
-        max-height: 85vh;
+        padding: 0.15rem;
     }
     
     .word-grid {
-        padding: 0.4rem;
         gap: 1px;
-        max-width: 60vw;
-        max-height: 80vh;
+        padding: 0.3rem;
+        border-width: 2px;
+        border-radius: 6px;
+        max-width: 99vw;
+    }
+}
+
+/* Orientation paysage */
+@media (max-height: 500px) and (orientation: landscape) {
+    .grid-container {
+        padding: 0.2rem;
+        max-height: 90vh;
+    }
+    
+    .word-grid {
+        padding: 0.3rem;
+        gap: 1px;
+        max-width: 65vw;
+        max-height: 85vh;
     }
 }
 
@@ -899,59 +919,88 @@ body {
     -webkit-tap-highlight-color: transparent;
     touch-action: none;
     
-    /* Taille responsive des cellules - s'adapte au viewport */
-    width: min(calc((100vw - 4rem) / 12), calc((100vh - 20rem) / 12), 50px);
-    height: min(calc((100vw - 4rem) / 12), calc((100vh - 20rem) / 12), 50px);
-    font-size: clamp(0.7rem, 2vw, 1.3rem);
+    /* Système de taille ultra-responsive basé sur vmin (le plus petit entre vw et vh) */
+    width: clamp(24px, 7vmin, 65px);
+    height: clamp(24px, 7vmin, 65px);
+    font-size: clamp(0.65rem, 2vmin, 1.5rem);
 }
 
-/* Ajustement pour les petits écrans */
-@media (max-width: 768px) {
+/* Desktop - plus grand */
+@media (min-width: 1025px) {
     .grid-cell {
-        width: min(calc((100vw - 3rem) / 12), calc((100vh - 18rem) / 12), 42px);
-        height: min(calc((100vw - 3rem) / 12), calc((100vh - 18rem) / 12), 42px);
-        font-size: clamp(0.65rem, 2.5vw, 1.1rem);
-        border-radius: 4px;
-        border-width: 1.5px;
+        width: clamp(35px, 6vmin, 65px);
+        height: clamp(35px, 6vmin, 65px);
+        font-size: clamp(0.9rem, 2.2vmin, 1.5rem);
     }
 }
 
-/* Ajustement pour les très petits écrans */
+/* Tablette */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .grid-cell {
+        width: clamp(28px, 7vmin, 55px);
+        height: clamp(28px, 7vmin, 55px);
+        font-size: clamp(0.75rem, 2.3vmin, 1.3rem);
+        border-radius: 5px;
+    }
+}
+
+/* Tablette portrait et grands smartphones */
+@media (max-width: 768px) and (min-width: 481px) {
+    .grid-cell {
+        width: clamp(26px, 7.5vmin, 48px);
+        height: clamp(26px, 7.5vmin, 48px);
+        font-size: clamp(0.7rem, 2.4vmin, 1.2rem);
+        border-radius: 4px;
+    }
+}
+
+/* Smartphones standard et Pro Max */
 @media (max-width: 480px) {
     .grid-cell {
-        width: min(calc((100vw - 2rem) / 12), calc((100vh - 16rem) / 12), 35px);
-        height: min(calc((100vw - 2rem) / 12), calc((100vh - 16rem) / 12), 35px);
-        font-size: clamp(0.6rem, 3vw, 1rem);
+        width: clamp(22px, 8vmin, 42px);
+        height: clamp(22px, 8vmin, 42px);
+        font-size: clamp(0.6rem, 2.5vmin, 1.1rem);
         border-radius: 3px;
         border-width: 1px;
     }
 }
 
-/* Ajustement pour orientation paysage sur mobile */
-@media (max-width: 900px) and (orientation: landscape) {
+/* Petits smartphones */
+@media (max-width: 380px) {
     .grid-cell {
-        width: min(calc((100vw - 20rem) / 12), calc((100vh - 8rem) / 12), 30px);
-        height: min(calc((100vw - 20rem) / 12), calc((100vh - 8rem) / 12), 30px);
-        font-size: clamp(0.6rem, 1.5vw, 0.9rem);
+        width: clamp(20px, 8.5vmin, 38px);
+        height: clamp(20px, 8.5vmin, 38px);
+        font-size: clamp(0.55rem, 2.6vmin, 1rem);
         border-radius: 3px;
+        border-width: 1px;
     }
 }
 
-/* Ajustement pour grilles 7×7 (niveau facile) */
-@media (min-width: 769px) {
-    .word-grid[style*="repeat(7"] .grid-cell {
-        width: min(calc((100vw - 4rem) / 7), calc((100vh - 20rem) / 7), 70px);
-        height: min(calc((100vw - 4rem) / 7), calc((100vh - 20rem) / 7), 70px);
-        font-size: clamp(1rem, 2.5vw, 1.6rem);
+/* iPhone Pro Max et grands smartphones (430px) */
+@media (min-width: 400px) and (max-width: 430px) {
+    .grid-cell {
+        width: clamp(24px, 7.8vmin, 40px);
+        height: clamp(24px, 7.8vmin, 40px);
+        font-size: clamp(0.65rem, 2.45vmin, 1.05rem);
     }
 }
 
-/* Ajustement pour grilles 10×10 (niveau intermédiaire) */
-@media (min-width: 769px) {
-    .word-grid[style*="repeat(10"] .grid-cell {
-        width: min(calc((100vw - 4rem) / 10), calc((100vh - 20rem) / 10), 55px);
-        height: min(calc((100vw - 4rem) / 10), calc((100vh - 20rem) / 10), 55px);
-        font-size: clamp(0.9rem, 2.2vw, 1.4rem);
+/* iPhone 14 Plus, 15 Plus (428px × 926px) */
+@media (min-width: 428px) and (max-width: 428px) and (min-height: 900px) {
+    .grid-cell {
+        width: clamp(24px, 7.5vmin, 41px);
+        height: clamp(24px, 7.5vmin, 41px);
+        font-size: clamp(0.65rem, 2.4vmin, 1.08rem);
+    }
+}
+
+/* Orientation paysage */
+@media (max-height: 500px) and (orientation: landscape) {
+    .grid-cell {
+        width: clamp(18px, 7vh, 35px);
+        height: clamp(18px, 7vh, 35px);
+        font-size: clamp(0.55rem, 2.2vh, 0.95rem);
+        border-radius: 3px;
     }
 }
 
@@ -1070,13 +1119,13 @@ body {
     }
     
     .game-container {
-        padding: 0.3rem;
-        gap: 0.4rem;
+        padding: 0.25rem;
+        gap: 0.35rem;
         max-height: 100vh;
     }
 
     .game-header {
-        padding: 0.6rem;
+        padding: 0.5rem;
     }
 
     .level-badge {
@@ -1085,26 +1134,26 @@ body {
     }
 
     .new-game-btn {
-        font-size: 0.75rem;
-        padding: 0.4rem 0.7rem;
+        font-size: 0.7rem;
+        padding: 0.35rem 0.6rem;
     }
 
     .words-compact {
-        padding: 0.5rem 0.7rem;
+        padding: 0.4rem 0.6rem;
     }
     
     .words-compact h3 {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         margin-bottom: 0.3rem;
     }
 
     .word-list-inline {
-        gap: 0.25rem;
+        gap: 0.2rem;
     }
     
     .word-list-inline .word-item {
-        padding: 0.3rem 0.5rem;
-        font-size: 0.7rem;
+        padding: 0.25rem 0.45rem;
+        font-size: 0.65rem;
     }
 
     .word-grid {
@@ -1116,7 +1165,7 @@ body {
     .timer-display,
     .score-display,
     .player-name {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
     }
     
     /* Ajustements scoreboard mobile */
@@ -1150,6 +1199,22 @@ body {
     .score-pseudo {
         font-size: 0.75rem;
         padding: 0.2rem 0.3rem;
+    }
+}
+
+/* iPhone Pro Max et grands smartphones */
+@media (min-width: 400px) and (max-width: 430px) {
+    .game-container {
+        padding: 0.3rem;
+        gap: 0.4rem;
+    }
+    
+    .words-compact {
+        padding: 0.5rem 0.7rem;
+    }
+    
+    .word-list-inline .word-item {
+        font-size: 0.7rem;
     }
 }
 
