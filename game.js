@@ -1151,62 +1151,83 @@ function optimizeGridSize(gridSize) {
 
     if (!grid || !container) return;
 
-    const containerRect = container.getBoundingClientRect();
-
-    const header = document.querySelector(".game-header");
-    const words = document.querySelector(".words-compact");
-
-    // Marges et padding pour un meilleur espacement
-    const horizontalMargin = 40;
-    const verticalMargin = 80;
-
-    const availableWidth = containerRect.width - horizontalMargin;
-    const availableHeight = window.innerHeight
-        - (header ? header.offsetHeight : 0)
-        - (words ? words.offsetHeight : 0)
-        - verticalMargin;
-
     // Récupérer rows et cols du niveau actuel
     const cfg = LEVEL_CONFIG[currentLevel];
     const rows = cfg.rows;
     const cols = cfg.cols;
 
-    // Calculer la taille de cellule basée sur la largeur et hauteur disponibles
-    const cellSizeByWidth = Math.floor(availableWidth / cols);
-    const cellSizeByHeight = Math.floor(availableHeight / rows);
+    // Calculer le padding et bordure de la grille
+    const gridStyle = window.getComputedStyle(grid);
+    const gridPadding = parseFloat(gridStyle.paddingLeft) + parseFloat(gridStyle.paddingRight);
+    const gridBorder = parseFloat(gridStyle.borderLeftWidth) + parseFloat(gridStyle.borderRightWidth);
+    const gridPaddingVertical = parseFloat(gridStyle.paddingTop) + parseFloat(gridStyle.paddingBottom);
+    const gridBorderVertical = parseFloat(gridStyle.borderTopWidth) + parseFloat(gridStyle.borderBottomWidth);
     
-    // Prendre la plus petite pour que tout rentre, avec une limite max
+    // Calculer le gap de la grille
+    const gap = parseFloat(gridStyle.gap) || 2;
+
+    // Récupérer les dimensions disponibles
+    const containerRect = container.getBoundingClientRect();
+    const header = document.querySelector(".game-header");
+    const words = document.querySelector(".words-compact");
+
+    // Marges de sécurité
+    const horizontalMargin = 30;
+    const verticalMargin = 80;
+
+    // Espace disponible pour les cellules (sans padding/bordure)
+    const availableWidth = Math.min(window.innerWidth - horizontalMargin, containerRect.width) - gridPadding - gridBorder;
+    const availableHeight = window.innerHeight
+        - (header ? header.offsetHeight : 0)
+        - (words ? words.offsetHeight : 0)
+        - verticalMargin
+        - gridPaddingVertical
+        - gridBorderVertical;
+
+    // Calculer la taille de cellule en tenant compte des gaps
+    const totalGapWidth = gap * (cols - 1);
+    const totalGapHeight = gap * (rows - 1);
+    
+    const cellSizeByWidth = Math.floor((availableWidth - totalGapWidth) / cols);
+    const cellSizeByHeight = Math.floor((availableHeight - totalGapHeight) / rows);
+    
+    // Prendre la plus petite pour que tout rentre
     let cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
     
-    // Limiter la taille max pour garder une bonne ergonomie
-    const maxCellSize = 65;
+    // Limiter la taille pour une bonne ergonomie
+    const maxCellSize = 60;
     const minCellSize = 25;
     cellSize = Math.max(minCellSize, Math.min(maxCellSize, cellSize));
 
-    const gridWidth = cellSize * cols;
-    const gridHeight = cellSize * rows;
+    // Calculer les dimensions réelles de la grille (cellules + gaps)
+    const gridContentWidth = (cellSize * cols) + totalGapWidth;
+    const gridContentHeight = (cellSize * rows) + totalGapHeight;
 
-    grid.style.width = `${gridWidth}px`;
-    grid.style.height = `${gridHeight}px`;
+    // Ne pas définir width/height sur la grille, laisser le CSS grid gérer
+    grid.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+    grid.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
 
-    // Ajuster le gap en fonction de la taille des cellules
+    // Ajuster le gap
     const gapSize = Math.max(1, Math.min(3, Math.floor(cellSize / 15)));
     grid.style.gap = `${gapSize}px`;
 
+    // Appliquer les styles aux cellules
     document.querySelectorAll(".grid-cell").forEach(cell => {
         cell.style.width = `${cellSize}px`;
         cell.style.height = `${cellSize}px`;
+        
         // Taille de police proportionnelle et lisible
-        const fontSize = Math.max(12, Math.min(32, cellSize * 0.55));
+        const fontSize = Math.max(14, Math.min(32, cellSize * 0.55));
         cell.style.fontSize = `${fontSize}px`;
         
-        // Ajuster le border-radius en fonction de la taille
+        // Ajuster le border-radius
         const borderRadius = Math.max(3, Math.min(8, Math.floor(cellSize / 8)));
         cell.style.borderRadius = `${borderRadius}px`;
     });
     
     // Log pour debug
-    console.log(`📐 Grille optimisée: ${cols}x${rows}, cellules: ${cellSize}px, total: ${gridWidth}x${gridHeight}px`);
+    console.log(`📐 Grille optimisée: ${cols}×${rows}, cellules: ${cellSize}px, gap: ${gapSize}px`);
+    console.log(`📦 Contenu grille: ${gridContentWidth}×${gridContentHeight}px (sans padding/bordure)`);
 }
 
 /* Resize dynamique */

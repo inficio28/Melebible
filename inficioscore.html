@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InficioScore - Tous les Scores</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #FF6B35;
+            --secondary: #F7931E;
+            --accent: #C1121F;
+            --dark: #1A1423;
+            --light: #FFF8F0;
+            --success: #06D6A0;
+            --grid-bg: #2D1B4E;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, var(--dark) 0%, var(--grid-bg) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-size: clamp(2rem, 6vw, 3.5rem);
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            background: linear-gradient(120deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 20px rgba(255, 107, 53, 0.4)); }
+            to { filter: drop-shadow(0 0 40px rgba(255, 107, 53, 0.8)); }
+        }
+
+        .subtitle {
+            font-size: clamp(1rem, 3vw, 1.3rem);
+            color: var(--secondary);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 107, 53, 0.3);
+            border-radius: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--light);
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            padding: 0.8rem 1.2rem;
+            font-size: 1rem;
+            font-family: 'Courier New', monospace;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--primary);
+            border-radius: 10px;
+            color: var(--light);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-box::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .search-box:focus {
+            border-color: var(--secondary);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 0 3px rgba(247, 147, 30, 0.2);
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.6rem 1.2rem;
+            font-size: 0.9rem;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            border: 2px solid rgba(255, 107, 53, 0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn:hover {
+            background: rgba(255, 107, 53, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .refresh-btn {
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            background: linear-gradient(135deg, var(--success), #04AA7C);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(6, 214, 160, 0.5);
+        }
+
+        .table-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 107, 53, 0.3);
+            border-radius: 15px;
+            padding: 1.5rem;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: clamp(0.8rem, 2vw, 1rem);
+        }
+
+        thead {
+            background: rgba(255, 107, 53, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: bold;
+            color: var(--secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid var(--primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        th:hover {
+            background: rgba(255, 107, 53, 0.3);
+        }
+
+        th.sortable::after {
+            content: ' ⇅';
+            opacity: 0.5;
+        }
+
+        th.sorted-asc::after {
+            content: ' ↑';
+            opacity: 1;
+            color: var(--success);
+        }
+
+        th.sorted-desc::after {
+            content: ' ↓';
+            opacity: 1;
+            color: var(--success);
+        }
+
+        tbody tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        tbody tr:hover {
+            background: rgba(255, 107, 53, 0.15);
+            transform: translateX(5px);
+        }
+
+        td {
+            padding: 0.8rem 1rem;
+            color: var(--light);
+        }
+
+        .rank-cell {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--secondary);
+            text-align: center;
+        }
+
+        .pseudo-cell {
+            font-weight: bold;
+            color: var(--primary);
+            font-size: 1.05rem;
+        }
+
+        .score-cell {
+            font-weight: bold;
+            color: var(--success);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .score-zero {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .connexion-cell {
+            color: #FFD700;
+            font-weight: bold;
+        }
+
+        .date-cell {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+
+        .medal {
+            display: inline-block;
+            margin-right: 0.3rem;
+            font-size: 1.2rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            font-size: 1.5rem;
+            color: var(--secondary);
+        }
+
+        .error {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(193, 18, 31, 0.2);
+            border: 2px solid var(--accent);
+            border-radius: 10px;
+            color: var(--light);
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 3rem;
+            color: rgba(255, 255, 255, 0.5);
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .stats-bar {
+                gap: 1rem;
+            }
+
+            .stat-value {
+                font-size: 1.5rem;
+            }
+
+            table {
+                font-size: 0.8rem;
+            }
+
+            th, td {
+                padding: 0.6rem 0.5rem;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-buttons {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏆 InficioScore</h1>
+            <p class="subtitle">Tableau complet des scores</p>
+        </div>
+
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-value" id="totalPlayers">-</div>
+                <div class="stat-label">Joueurs</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalConnections">-</div>
+                <div class="stat-label">Connexions</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="activePlayers">-</div>
+                <div class="stat-label">Actifs (24h)</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <input type="text" id="searchInput" class="search-box" placeholder="🔍 Rechercher un joueur...">
+            
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all">Tous</button>
+                <button class="filter-btn" data-filter="facile">🟢 Facile</button>
+                <button class="filter-btn" data-filter="intermediaire">🟡 Inter</button>
+                <button class="filter-btn" data-filter="difficile">🔴 Difficile</button>
+                <button class="filter-btn" data-filter="suicide">❓ Mystère</button>
+            </div>
+
+            <button class="refresh-btn" id="refreshBtn">🔄 Actualiser</button>
+        </div>
+
+        <div class="table-container">
+            <div id="loading" class="loading">
+                ⏳ Chargement des données...
+            </div>
+            <div id="error" class="error" style="display: none;"></div>
+            <table id="scoresTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-column="rank">#</th>
+                        <th class="sortable" data-column="pseudo">Pseudo</th>
+                        <th class="sortable" data-column="facile">🟢 Facile</th>
+                        <th class="sortable" data-column="intermediaire">🟡 Intermédiaire</th>
+                        <th class="sortable" data-column="difficile">🔴 Difficile</th>
+                        <th class="sortable" data-column="suicide">❓ Mystère</th>
+                        <th class="sortable" data-column="nbconnexion">Connexions</th>
+                        <th class="sortable" data-column="lastconnexion_at">Dernière activité</th>
+                        <th class="sortable" data-column="lastconnexion_at">Date complète</th>
+                    </tr>
+                </thead>
+                <tbody id="scoresBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // =====================================================
+        // CONFIGURATION SUPABASE
+        // =====================================================
+        const SUPABASE_URL = 'https://zjiwgfwecsnamrmyvfsq.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpqaXdnZndlY3NuYW1ybXl2ZnNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4MjE3NzQsImV4cCI6MjA4NjM5Nzc3NH0.cLdaYSfPhJiDNJ1aPeMfNVJVZa6ouCZv4P0WKrrz6oo';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // =====================================================
+        // VARIABLES GLOBALES
+        // =====================================================
+        let allScores = [];
+        let filteredScores = [];
+        let currentSort = { column: 'nbconnexion', order: 'desc' };
+        let currentFilter = 'all';
+
+        // =====================================================
+        // ÉLÉMENTS DOM
+        // =====================================================
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const scoresTable = document.getElementById('scoresTable');
+        const scoresBody = document.getElementById('scoresBody');
+        const searchInput = document.getElementById('searchInput');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+
+        const totalPlayersEl = document.getElementById('totalPlayers');
+        const totalConnectionsEl = document.getElementById('totalConnections');
+        const activePlayersEl = document.getElementById('activePlayers');
+
+        // =====================================================
+        // INITIALISATION
+        // =====================================================
+        window.addEventListener('DOMContentLoaded', () => {
+            loadScores();
+            setupEventListeners();
+        });
+
+        // =====================================================
+        // CHARGEMENT DES SCORES
+        // =====================================================
+        async function loadScores() {
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            scoresTable.style.display = 'none';
+
+            try {
+                const { data, error: fetchError } = await supabaseClient
+                    .from('scores')
+                    .select('*')
+                    .order('nbconnexion', { ascending: false });
+
+                if (fetchError) throw fetchError;
+
+                allScores = data || [];
+                filteredScores = [...allScores];
+                
+                updateStats();
+                sortScores(currentSort.column, currentSort.order);
+                renderTable();
+
+                loading.style.display = 'none';
+                scoresTable.style.display = 'table';
+
+            } catch (err) {
+                console.error('Erreur chargement scores:', err);
+                loading.style.display = 'none';
+                error.style.display = 'block';
+                error.textContent = `❌ Erreur: ${err.message}`;
+            }
+        }
+
+        // =====================================================
+        // CALCUL DES STATISTIQUES
+        // =====================================================
+        function updateStats() {
+            const totalPlayers = allScores.length;
+            const totalConnections = allScores.reduce((sum, s) => sum + (s.nbconnexion || 0), 0);
+            
+            const now = new Date();
+            const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            const activePlayers = allScores.filter(s => {
+                if (!s.lastconnexion_at) return false;
+                const lastConnection = new Date(s.lastconnexion_at);
+                return lastConnection >= yesterday;
+            }).length;
+
+            totalPlayersEl.textContent = totalPlayers;
+            totalConnectionsEl.textContent = totalConnections;
+            activePlayersEl.textContent = activePlayers;
+        }
+
+        // =====================================================
+        // RENDU DU TABLEAU
+        // =====================================================
+        function renderTable() {
+            scoresBody.innerHTML = '';
+
+            if (filteredScores.length === 0) {
+                scoresBody.innerHTML = '<tr><td colspan="9" class="no-data">Aucun joueur trouvé</td></tr>';
+                return;
+            }
+
+            filteredScores.forEach((score, index) => {
+                const row = document.createElement('tr');
+                
+                // Médaille pour les 3 premiers
+                let medal = '';
+                if (currentSort.column !== 'pseudo' && currentSort.order === 'desc') {
+                    if (index === 0) medal = '🥇';
+                    else if (index === 1) medal = '🥈';
+                    else if (index === 2) medal = '🥉';
+                }
+
+                row.innerHTML = `
+                    <td class="rank-cell">${medal}${index + 1}</td>
+                    <td class="pseudo-cell">${escapeHtml(score.pseudo || 'Anonyme')}</td>
+                    <td class="score-cell ${score.facile === 0 ? 'score-zero' : ''}">${formatScore(score.facile)}</td>
+                    <td class="score-cell ${score.intermediaire === 0 ? 'score-zero' : ''}">${formatScore(score.intermediaire)}</td>
+                    <td class="score-cell ${score.difficile === 0 ? 'score-zero' : ''}">${formatScore(score.difficile)}</td>
+                    <td class="score-cell ${score.suicide === 0 ? 'score-zero' : ''}">${formatScore(score.suicide)}</td>
+                    <td class="connexion-cell">${score.nbconnexion || 0}</td>
+                    <td class="date-cell">${formatDateRelative(score.lastconnexion_at)}</td>
+                    <td class="date-cell">${formatDateComplete(score.lastconnexion_at)}</td>
+                `;
+                
+                scoresBody.appendChild(row);
+            });
+        }
+
+        // =====================================================
+        // TRI DES SCORES
+        // =====================================================
+        function sortScores(column, order = null) {
+            // Si on clique sur la même colonne, inverser l'ordre
+            if (order === null) {
+                if (currentSort.column === column) {
+                    order = currentSort.order === 'asc' ? 'desc' : 'asc';
+                } else {
+                    order = 'desc';
+                }
+            }
+
+            currentSort = { column, order };
+
+            filteredScores.sort((a, b) => {
+                let valA = a[column];
+                let valB = b[column];
+
+                // Gestion des valeurs nulles
+                if (valA === null || valA === undefined) valA = column === 'pseudo' ? '' : 0;
+                if (valB === null || valB === undefined) valB = column === 'pseudo' ? '' : 0;
+
+                // Comparaison
+                if (column === 'pseudo' || column === 'lastconnexion_at') {
+                    valA = String(valA).toLowerCase();
+                    valB = String(valB).toLowerCase();
+                    return order === 'asc' 
+                        ? valA.localeCompare(valB) 
+                        : valB.localeCompare(valA);
+                } else {
+                    return order === 'asc' ? valA - valB : valB - valA;
+                }
+            });
+
+            // Mettre à jour les indicateurs visuels
+            document.querySelectorAll('th').forEach(th => {
+                th.classList.remove('sorted-asc', 'sorted-desc');
+            });
+            
+            const sortedHeader = document.querySelector(`th[data-column="${column}"]`);
+            if (sortedHeader) {
+                sortedHeader.classList.add(order === 'asc' ? 'sorted-asc' : 'sorted-desc');
+            }
+
+            renderTable();
+        }
+
+        // =====================================================
+        // FILTRAGE
+        // =====================================================
+        function applyFilter(filter) {
+            currentFilter = filter;
+
+            if (filter === 'all') {
+                filteredScores = [...allScores];
+            } else {
+                filteredScores = allScores.filter(score => score[filter] > 0);
+            }
+
+            applySearch();
+        }
+
+        function applySearch() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+
+            if (searchTerm === '') {
+                if (currentFilter === 'all') {
+                    filteredScores = [...allScores];
+                } else {
+                    filteredScores = allScores.filter(score => score[currentFilter] > 0);
+                }
+            } else {
+                const baseFiltered = currentFilter === 'all' 
+                    ? allScores 
+                    : allScores.filter(score => score[currentFilter] > 0);
+                
+                filteredScores = baseFiltered.filter(score => 
+                    (score.pseudo || '').toLowerCase().includes(searchTerm)
+                );
+            }
+
+            sortScores(currentSort.column, currentSort.order);
+        }
+
+        // =====================================================
+        // EVENT LISTENERS
+        // =====================================================
+        function setupEventListeners() {
+            // Tri par colonnes
+            document.querySelectorAll('th.sortable').forEach(th => {
+                th.addEventListener('click', () => {
+                    const column = th.dataset.column;
+                    sortScores(column);
+                });
+            });
+
+            // Recherche
+            searchInput.addEventListener('input', applySearch);
+
+            // Filtres
+            filterButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    filterButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    applyFilter(btn.dataset.filter);
+                });
+            });
+
+            // Actualiser
+            refreshBtn.addEventListener('click', loadScores);
+        }
+
+        // =====================================================
+        // UTILITAIRES
+        // =====================================================
+        function formatScore(score) {
+            if (!score || score === 0) return '-';
+            return score.toLocaleString('fr-FR');
+        }
+
+        function formatDateRelative(dateString) {
+            if (!dateString) return 'Jamais';
+            
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'À l\'instant';
+            if (diffMins < 60) return `Il y a ${diffMins} min`;
+            if (diffHours < 24) return `Il y a ${diffHours}h`;
+            if (diffDays < 7) return `Il y a ${diffDays}j`;
+            
+            return date.toLocaleDateString('fr-FR', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric' 
+            });
+        }
+
+        function formatDateComplete(dateString) {
+            if (!dateString) return 'Jamais';
+            
+            const date = new Date(dateString);
+            
+            return date.toLocaleDateString('fr-FR', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
