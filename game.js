@@ -492,7 +492,6 @@ async function startGame() {
         }
         
         console.log(`✅ Grille créée avec exactement ${wordsToFind.length} mots`);
-        console.log(`📊 Dimensions gridData: ${gridData.length} lignes × ${gridData[0].length} colonnes`);
         console.log('🎨 Rendu de la grille...');
         renderGrid(cfg.rows, cfg.cols);
         
@@ -505,10 +504,11 @@ async function startGame() {
         console.log('✅ Affichage de la page de jeu');
         showPage(gamepage);
         
-        // Optimiser la taille de la grille après l'affichage
+        // Optimiser la taille de la grille après que la page soit affichée
         setTimeout(() => {
+            console.log('🔧 Optimisation de la grille...');
             optimizeGridSize();
-        }, 100);
+        }, 150);
         
         console.log('🎮 Jeu prêt !');
     } finally {
@@ -697,14 +697,13 @@ function calculatePlacementScore(word, startRow, startCol, direction, rows, cols
     const distanceFromCenter = Math.abs(avgRow - centerRow) + Math.abs(avgCol - centerCol);
     score += Math.max(0, 15 - distanceFromCenter);
     
-    // BONUS pour la variété de direction - grilles carrées optimisées
-    // Favoriser horizontal et vertical en priorité
+    // BONUS pour la variété de direction (favorise H/V en premier)
     if (direction.name === 'HORIZONTAL_RIGHT' || direction.name === 'VERTICAL_DOWN') {
-        score += 12;
-    } else if (direction.name === 'HORIZONTAL_LEFT' || direction.name === 'VERTICAL_UP') {
         score += 10;
+    } else if (direction.name === 'HORIZONTAL_LEFT' || direction.name === 'VERTICAL_UP') {
+        score += 8;
     } else {
-        score += 6; // Diagonales
+        score += 5; // Diagonales en dernier
     }
     
     // BONUS pour les mots qui laissent de l'espace libre autour
@@ -811,10 +810,7 @@ function renderGrid(rows, cols) {
     wordGrid.innerHTML = '';
     wordGrid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
     wordGrid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-    
-    console.log(`🎨 Rendu de la grille: ${rows} lignes × ${cols} colonnes = ${rows * cols} cellules`);
 
-    let cellCount = 0;
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             const cell = document.createElement('div');
@@ -832,11 +828,9 @@ function renderGrid(rows, cols) {
             cell.addEventListener('touchend', handleTouchEnd, { passive: false });
             
             wordGrid.appendChild(cell);
-            cellCount++;
         }
     }
-    
-    console.log(`✅ ${cellCount} cellules créées et ajoutées au DOM`);
+}
 
 // =====================================================
 // SÉLECTION À LA SOURIS
@@ -1158,87 +1152,77 @@ function optimizeGridSize() {
     const grid = document.getElementById("wordGrid");
     const container = document.querySelector(".grid-container");
 
-    if (!grid || !container) return;
+    if (!grid || !container) {
+        console.warn('⚠️ Grid ou container non trouvé');
+        return;
+    }
 
-    // Récupérer rows et cols du niveau actuel
+    // Récupérer les dimensions du niveau actuel
     const cfg = LEVEL_CONFIG[currentLevel];
+    if (!cfg) {
+        console.warn('⚠️ Configuration niveau non trouvée');
+        return;
+    }
+    
     const rows = cfg.rows;
     const cols = cfg.cols;
-    
     currentGridSize = { rows, cols };
 
-    // Calculer le padding et bordure de la grille
-    const gridStyle = window.getComputedStyle(grid);
-    const gridPadding = parseFloat(gridStyle.paddingLeft) + parseFloat(gridStyle.paddingRight);
-    const gridBorder = parseFloat(gridStyle.borderLeftWidth) + parseFloat(gridStyle.borderRightWidth);
-    const gridPaddingVertical = parseFloat(gridStyle.paddingTop) + parseFloat(gridStyle.paddingBottom);
-    const gridBorderVertical = parseFloat(gridStyle.borderTopWidth) + parseFloat(gridStyle.borderBottomWidth);
-    
-    // Calculer le gap de la grille
-    const gap = parseFloat(gridStyle.gap) || 2;
-
-    // Récupérer les dimensions disponibles
-    const containerRect = container.getBoundingClientRect();
+    // Obtenir les éléments pour calculer l'espace disponible
     const header = document.querySelector(".game-header");
     const words = document.querySelector(".words-compact");
 
+    // Calculer l'espace disponible
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    const headerHeight = header ? header.offsetHeight : 0;
+    const wordsHeight = words ? words.offsetHeight : 0;
+    
     // Marges de sécurité
-    const horizontalMargin = 30;
-    const verticalMargin = 80;
+    const horizontalMargin = 40;
+    const verticalMargin = 100;
+    
+    const availableWidth = viewportWidth - horizontalMargin;
+    const availableHeight = viewportHeight - headerHeight - wordsHeight - verticalMargin;
 
-    // Espace disponible pour les cellules (sans padding/bordure)
-    const availableWidth = Math.min(window.innerWidth - horizontalMargin, containerRect.width) - gridPadding - gridBorder;
-    const availableHeight = window.innerHeight
-        - (header ? header.offsetHeight : 0)
-        - (words ? words.offsetHeight : 0)
-        - verticalMargin
-        - gridPaddingVertical
-        - gridBorderVertical;
-
-    // Calculer la taille de cellule en tenant compte des gaps
+    // Calculer la taille optimale des cellules
+    const gap = 2; // Gap entre les cellules
     const totalGapWidth = gap * (cols - 1);
     const totalGapHeight = gap * (rows - 1);
     
     const cellSizeByWidth = Math.floor((availableWidth - totalGapWidth) / cols);
     const cellSizeByHeight = Math.floor((availableHeight - totalGapHeight) / rows);
     
-    // Prendre la plus petite pour que tout rentre
+    // Prendre la plus petite dimension
     let cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
     
-    // Limiter la taille pour une bonne ergonomie
-    const maxCellSize = 60;
+    // Limiter la taille des cellules
     const minCellSize = 25;
+    const maxCellSize = 60;
     cellSize = Math.max(minCellSize, Math.min(maxCellSize, cellSize));
 
-    // Calculer les dimensions réelles de la grille (cellules + gaps)
-    const gridContentWidth = (cellSize * cols) + totalGapWidth;
-    const gridContentHeight = (cellSize * rows) + totalGapHeight;
-
-    // Ne pas définir width/height sur la grille, laisser le CSS grid gérer
+    // Appliquer les styles au grid
     grid.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
     grid.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
-
-    // Ajuster le gap
-    const gapSize = Math.max(1, Math.min(3, Math.floor(cellSize / 15)));
-    grid.style.gap = `${gapSize}px`;
+    grid.style.gap = `${gap}px`;
 
     // Appliquer les styles aux cellules
-    document.querySelectorAll(".grid-cell").forEach(cell => {
+    const cells = document.querySelectorAll(".grid-cell");
+    cells.forEach(cell => {
         cell.style.width = `${cellSize}px`;
         cell.style.height = `${cellSize}px`;
         
-        // Taille de police proportionnelle et lisible
+        // Taille de police proportionnelle
         const fontSize = Math.max(14, Math.min(32, cellSize * 0.55));
         cell.style.fontSize = `${fontSize}px`;
         
-        // Ajuster le border-radius
+        // Border radius proportionnel
         const borderRadius = Math.max(3, Math.min(8, Math.floor(cellSize / 8)));
         cell.style.borderRadius = `${borderRadius}px`;
     });
     
-    // Log pour debug
-    console.log(`📐 Grille optimisée: ${cols}×${rows}, cellules: ${cellSize}px, gap: ${gapSize}px`);
-    console.log(`📦 Contenu grille: ${gridContentWidth}×${gridContentHeight}px (sans padding/bordure)`);
+    console.log(`📐 Grille optimisée: ${cols}×${rows}, cellules: ${cellSize}px, ${cells.length} cellules trouvées`);
 }
 
 /* Resize dynamique */
@@ -1255,4 +1239,5 @@ window.addEventListener("orientationchange", () => {
         }
     }, 300);
 });
+
 
