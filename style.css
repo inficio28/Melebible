@@ -1330,3 +1330,23 @@ body {
         font-size: 16px;
     }
 }
+
+
+/* =============================== */
+/* 🔥 GRID OPTIMISATION DYNAMIQUE */
+/* =============================== */
+
+/* Suppression sizing fixe - sizing dynamique via JS */
+.grid-cell {
+    aspect-ratio: 1 / 1;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Correction viewport iOS moderne */
+.game-container {
+    min-height: 100dvh;
+}
+
