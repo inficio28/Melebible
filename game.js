@@ -492,6 +492,7 @@ async function startGame() {
         }
         
         console.log(`✅ Grille créée avec exactement ${wordsToFind.length} mots`);
+        console.log(`📊 Dimensions gridData: ${gridData.length} lignes × ${gridData[0].length} colonnes`);
         console.log('🎨 Rendu de la grille...');
         renderGrid(cfg.rows, cfg.cols);
         
@@ -503,6 +504,11 @@ async function startGame() {
         
         console.log('✅ Affichage de la page de jeu');
         showPage(gamepage);
+        
+        // Optimiser la taille de la grille après l'affichage
+        setTimeout(() => {
+            optimizeGridSize();
+        }, 100);
         
         console.log('🎮 Jeu prêt !');
     } finally {
@@ -805,7 +811,10 @@ function renderGrid(rows, cols) {
     wordGrid.innerHTML = '';
     wordGrid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
     wordGrid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    
+    console.log(`🎨 Rendu de la grille: ${rows} lignes × ${cols} colonnes = ${rows * cols} cellules`);
 
+    let cellCount = 0;
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             const cell = document.createElement('div');
@@ -823,9 +832,11 @@ function renderGrid(rows, cols) {
             cell.addEventListener('touchend', handleTouchEnd, { passive: false });
             
             wordGrid.appendChild(cell);
+            cellCount++;
         }
     }
-}
+    
+    console.log(`✅ ${cellCount} cellules créées et ajoutées au DOM`);
 
 // =====================================================
 // SÉLECTION À LA SOURIS
@@ -1143,9 +1154,7 @@ function shuffleArray(array) {
 
 let currentGridSize = null;
 
-function optimizeGridSize(gridSize) {
-    currentGridSize = gridSize;
-
+function optimizeGridSize() {
     const grid = document.getElementById("wordGrid");
     const container = document.querySelector(".grid-container");
 
@@ -1155,6 +1164,8 @@ function optimizeGridSize(gridSize) {
     const cfg = LEVEL_CONFIG[currentLevel];
     const rows = cfg.rows;
     const cols = cfg.cols;
+    
+    currentGridSize = { rows, cols };
 
     // Calculer le padding et bordure de la grille
     const gridStyle = window.getComputedStyle(grid);
@@ -1233,14 +1244,14 @@ function optimizeGridSize(gridSize) {
 /* Resize dynamique */
 window.addEventListener("resize", () => {
     if (currentGridSize) {
-        optimizeGridSize(currentGridSize);
+        optimizeGridSize();
     }
 });
 
 window.addEventListener("orientationchange", () => {
     setTimeout(() => {
         if (currentGridSize) {
-            optimizeGridSize(currentGridSize);
+            optimizeGridSize();
         }
     }, 300);
 });
