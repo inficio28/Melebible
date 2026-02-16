@@ -920,9 +920,10 @@ body {
     touch-action: none;
     
     /* Système de taille ultra-responsive basé sur vmin (le plus petit entre vw et vh) */
-    width: clamp(24px, 7vmin, 65px);
-    height: clamp(24px, 7vmin, 65px);
-    font-size: clamp(0.65rem, 2vmin, 1.5rem);
+    /* Valeurs augmentées pour mieux remplir l'écran */
+    width: clamp(28px, 10vmin, 70px);
+    height: clamp(28px, 10vmin, 70px);
+    font-size: clamp(0.7rem, 3vmin, 1.6rem);
 }
 
 /* Desktop - plus grand */
@@ -947,9 +948,9 @@ body {
 /* Tablette portrait et grands smartphones */
 @media (max-width: 768px) and (min-width: 481px) {
     .grid-cell {
-        width: clamp(26px, 7.5vmin, 48px);
-        height: clamp(26px, 7.5vmin, 48px);
-        font-size: clamp(0.7rem, 2.4vmin, 1.2rem);
+        width: clamp(30px, 9.5vmin, 55px);
+        height: clamp(30px, 9.5vmin, 55px);
+        font-size: clamp(0.8rem, 2.8vmin, 1.4rem);
         border-radius: 4px;
     }
 }
@@ -957,9 +958,9 @@ body {
 /* Smartphones standard et Pro Max */
 @media (max-width: 480px) {
     .grid-cell {
-        width: clamp(22px, 8vmin, 42px);
-        height: clamp(22px, 8vmin, 42px);
-        font-size: clamp(0.6rem, 2.5vmin, 1.1rem);
+        width: clamp(26px, 11vmin, 50px);
+        height: clamp(26px, 11vmin, 50px);
+        font-size: clamp(0.7rem, 3.2vmin, 1.3rem);
         border-radius: 3px;
         border-width: 1px;
     }
@@ -968,9 +969,9 @@ body {
 /* Petits smartphones */
 @media (max-width: 380px) {
     .grid-cell {
-        width: clamp(20px, 8.5vmin, 38px);
-        height: clamp(20px, 8.5vmin, 38px);
-        font-size: clamp(0.55rem, 2.6vmin, 1rem);
+        width: clamp(24px, 11.5vmin, 45px);
+        height: clamp(24px, 11.5vmin, 45px);
+        font-size: clamp(0.65rem, 3.3vmin, 1.2rem);
         border-radius: 3px;
         border-width: 1px;
     }
@@ -979,9 +980,9 @@ body {
 /* iPhone Pro Max et grands smartphones (430px) */
 @media (min-width: 400px) and (max-width: 430px) {
     .grid-cell {
-        width: clamp(24px, 7.8vmin, 40px);
-        height: clamp(24px, 7.8vmin, 40px);
-        font-size: clamp(0.65rem, 2.45vmin, 1.05rem);
+        width: clamp(28px, 10.5vmin, 48px);
+        height: clamp(28px, 10.5vmin, 48px);
+        font-size: clamp(0.75rem, 3.1vmin, 1.25rem);
     }
 }
 
