@@ -134,13 +134,14 @@ body {
     border: 2px solid rgba(255, 107, 53, 0.3);
     border-radius: 15px;
     padding: 1.5rem;
+    min-width: 280px;
 }
 
 .scoreboard-title {
     display: flex;
     align-items: center;
     gap: 0.8rem;
-    font-size: 1.4rem;
+    font-size: 1.3rem;
     margin-bottom: 1rem;
     color: var(--secondary);
     text-transform: uppercase;
@@ -150,16 +151,16 @@ body {
 .scoreboard-list {
     display: flex;
     flex-direction: column;
-    gap: 0.8rem;
+    gap: 0.7rem;
 }
 
 .score-item {
     display: grid;
-    grid-template-columns: 40px 1fr auto auto;
-    gap: 0.8rem;
+    grid-template-columns: 35px 1fr 70px 45px;
+    gap: 0.6rem;
     align-items: center;
     background: rgba(255, 255, 255, 0.08);
-    padding: 0.8rem;
+    padding: 0.7rem 0.9rem;
     border-radius: 10px;
     transition: all 0.3s ease;
 }
@@ -172,27 +173,36 @@ body {
 .score-rank {
     font-weight: bold;
     color: var(--secondary);
-    font-size: 1.1rem;
-}
-
-.score-pseudo {
-    color: var(--light);
-    font-weight: bold;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-size: 1rem;
+    text-align: center;
 }
 
 .score-time {
     color: var(--timer-color);
     font-weight: bold;
     font-variant-numeric: tabular-nums;
+    font-size: 0.95rem;
 }
 
 .score-points {
     color: var(--success);
     font-weight: bold;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
+    text-align: right;
+}
+
+.score-pseudo {
+    color: var(--light);
+    font-weight: bold;
+    text-align: center;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.3rem 0.4rem;
+    border-radius: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
 }
 
 .no-scores {
@@ -811,6 +821,8 @@ body {
     align-items: center;
     width: 100%;
     padding: 0.5rem;
+    overflow-x: auto;
+    overflow-y: visible;
 }
 
 /* Grille dynamique : dimensions définies via JS */
@@ -822,8 +834,39 @@ body {
     border-radius: 15px;
     border: 3px solid var(--primary);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    width: fit-content;
     max-width: 100%;
-    overflow: visible;
+    margin: 0 auto;
+}
+
+/* Ajustement responsive de la grille */
+@media (max-width: 768px) {
+    .word-grid {
+        gap: 2px;
+        padding: clamp(0.4rem, 1.5vw, 0.8rem);
+        border-width: 2px;
+        border-radius: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .grid-container {
+        padding: 0.3rem;
+    }
+    
+    .word-grid {
+        gap: 1px;
+        padding: 0.4rem;
+        border-width: 2px;
+        border-radius: 8px;
+    }
+}
+
+@media (max-width: 900px) and (orientation: landscape) {
+    .word-grid {
+        padding: 0.4rem;
+        gap: 2px;
+    }
 }
 
 .grid-cell {
@@ -840,6 +883,41 @@ body {
     position: relative;
     -webkit-tap-highlight-color: transparent;
     touch-action: none;
+    
+    /* Taille responsive des cellules - adaptée pour grilles jusqu'à 12×12 */
+    width: clamp(28px, 7vw, 55px);
+    height: clamp(28px, 7vw, 55px);
+    font-size: clamp(0.85rem, 2.3vw, 1.4rem);
+}
+
+/* Ajustement pour les petits écrans */
+@media (max-width: 768px) {
+    .grid-cell {
+        width: clamp(25px, 8vw, 42px);
+        height: clamp(25px, 8vw, 42px);
+        font-size: clamp(0.75rem, 2.8vw, 1.1rem);
+        border-radius: 4px;
+    }
+}
+
+/* Ajustement pour les très petits écrans */
+@media (max-width: 480px) {
+    .grid-cell {
+        width: clamp(22px, 10vw, 36px);
+        height: clamp(22px, 10vw, 36px);
+        font-size: clamp(0.7rem, 3.2vw, 1rem);
+        border-radius: 3px;
+        border-width: 1px;
+    }
+}
+
+/* Ajustement pour orientation paysage sur mobile */
+@media (max-width: 900px) and (orientation: landscape) {
+    .grid-cell {
+        width: clamp(20px, 5.5vh, 32px);
+        height: clamp(20px, 5.5vh, 32px);
+        font-size: clamp(0.65rem, 1.8vh, 0.95rem);
+    }
 }
 
 .grid-cell::before {
@@ -852,13 +930,16 @@ body {
     transition: opacity 0.2s ease;
 }
 
-.grid-cell:hover::before { opacity: 1; }
+/* Hover seulement sur les appareils avec souris */
+@media (hover: hover) and (pointer: fine) {
+    .grid-cell:hover::before { opacity: 1; }
 
-.grid-cell:hover {
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    transform: scale(1.08);
-    box-shadow: 0 5px 15px rgba(255, 107, 53, 0.5);
-    z-index: 10;
+    .grid-cell:hover {
+        background: linear-gradient(135deg, var(--primary), var(--accent));
+        transform: scale(1.08);
+        box-shadow: 0 5px 15px rgba(255, 107, 53, 0.5);
+        z-index: 10;
+    }
 }
 
 .grid-cell:active { transform: scale(0.95); }
@@ -909,6 +990,11 @@ body {
     .scoreboard-grid {
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     }
+    
+    .grid-cell {
+        width: clamp(32px, 7vw, 50px);
+        height: clamp(32px, 7vw, 50px);
+    }
 }
 
 /* Tablette portrait */
@@ -927,6 +1013,7 @@ body {
     .player-info {
         justify-content: center;
         gap: 0.8rem;
+        flex-wrap: wrap;
     }
 
     .words-compact {
@@ -960,13 +1047,13 @@ body {
     }
 
     .level-badge {
-        font-size: 0.85rem;
-        padding: 0.25rem 0.6rem;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
     }
 
     .new-game-btn {
-        font-size: 0.85rem;
-        padding: 0.6rem 1rem;
+        font-size: 0.8rem;
+        padding: 0.5rem 0.8rem;
     }
 
     .words-compact {
@@ -974,13 +1061,51 @@ body {
     }
 
     .word-list-inline {
-        gap: 0.4rem;
+        gap: 0.3rem;
     }
 
     .word-grid {
         gap: 2px;
         padding: 0.5rem;
         border-width: 2px;
+    }
+    
+    .timer-display,
+    .score-display {
+        font-size: 0.8rem;
+    }
+    
+    /* Ajustements scoreboard mobile */
+    .scoreboard-section {
+        padding: 1rem;
+        min-width: auto;
+    }
+    
+    .scoreboard-title {
+        font-size: 1.1rem;
+    }
+    
+    .score-item {
+        grid-template-columns: 30px 1fr 60px 40px;
+        gap: 0.4rem;
+        padding: 0.6rem 0.7rem;
+    }
+    
+    .score-rank {
+        font-size: 0.9rem;
+    }
+    
+    .score-time {
+        font-size: 0.85rem;
+    }
+    
+    .score-points {
+        font-size: 0.75rem;
+    }
+    
+    .score-pseudo {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.3rem;
     }
 }
 
@@ -1009,6 +1134,15 @@ body {
     .word-grid {
         padding: 0.4rem;
     }
+    
+    .game-header {
+        padding: 0.6rem;
+    }
+    
+    .player-info {
+        gap: 0.4rem;
+        font-size: 0.75rem;
+    }
 }
 
 /* Orientation paysage sur mobile */
@@ -1020,38 +1154,48 @@ body {
         align-items: flex-start;
         padding: 0.5rem;
         gap: 0.5rem;
+        max-height: 100vh;
+        overflow-y: auto;
     }
 
     .game-header {
         width: 100%;
         max-width: 100%;
         margin-bottom: 0.3rem;
-        padding: 0.6rem 1rem;
+        padding: 0.5rem 1rem;
     }
     
     .player-info {
         gap: 0.5rem;
+        font-size: 0.8rem;
     }
 
     .words-compact {
         width: auto;
-        max-width: 280px;
+        max-width: 250px;
         margin-right: 0.5rem;
-        padding: 0.8rem;
+        padding: 0.6rem;
     }
     
     .words-compact h3 {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         margin-bottom: 0.5rem;
     }
 
     .grid-container {
         flex: 1;
         min-width: 0;
+        padding: 0.3rem;
     }
     
     .word-grid {
-        padding: 0.5rem;
+        padding: 0.4rem;
+        max-height: 80vh;
+    }
+    
+    .new-game-btn {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.8rem;
     }
 }
 

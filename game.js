@@ -13,8 +13,8 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const LEVEL_CONFIG = {
     1: { rows: 7,  cols: 7,  name: 'Facile',        badgeClass: 'easy',    icon: '🟢', wordCount: 10  },
     2: { rows: 10, cols: 10, name: 'Intermédiaire', badgeClass: 'medium',  icon: '🟡', wordCount: 15 },
-    3: { rows: 10, cols: 10, name: 'Difficile',     badgeClass: 'hard',    icon: '🔴', wordCount: 20 },
-    4: { rows: 10, cols: 10, name: 'Mode Mystère',  badgeClass: 'suicide', icon: '❓', wordCount: 20 },
+    3: { rows: 12, cols: 12, name: 'Difficile',     badgeClass: 'hard',    icon: '🔴', wordCount: 20 },
+    4: { rows: 12, cols: 12, name: 'Mode Mystère',  badgeClass: 'suicide', icon: '❓', wordCount: 20 },
 };
 
 // =====================================================
@@ -82,7 +82,10 @@ const scoreboardSuicide = document.getElementById('scoreboardSuicide');
 // =====================================================
 // INITIALISATION
 // =====================================================
-window.addEventListener('DOMContentLoaded', checkDatabaseConnection);
+window.addEventListener('DOMContentLoaded', () => {
+    checkDatabaseConnection();
+    loadSavedPseudo();
+});
 
 // =====================================================
 // CONNEXION SUPABASE
@@ -119,6 +122,22 @@ async function checkDatabaseConnection() {
             statusText.textContent = 'Mode hors ligne — Mots par défaut utilisés';
         }, 2000);
     }
+}
+
+// =====================================================
+// GESTION DU PSEUDO LOCAL
+// =====================================================
+function loadSavedPseudo() {
+    const savedPseudo = localStorage.getItem('wordgame_pseudo');
+    if (savedPseudo) {
+        pseudoInput.value = savedPseudo;
+        console.log('✅ Pseudo chargé depuis localStorage:', savedPseudo);
+    }
+}
+
+function savePseudoToLocal(pseudo) {
+    localStorage.setItem('wordgame_pseudo', pseudo);
+    console.log('✅ Pseudo sauvegardé en localStorage:', pseudo);
 }
 
 // =====================================================
@@ -172,6 +191,9 @@ function goToLevelSelection() {
         alert('⚠️ Entre un pseudo pour commencer !');
         return;
     }
+    
+    // Sauvegarder le pseudo en localStorage
+    savePseudoToLocal(pseudo);
     
     if (isDatabaseConnected) {
         createOrGetPlayer(pseudo).then(ok => {
@@ -306,7 +328,7 @@ function displayLevelScores(scores, level, container) {
     const levelScores = scores
         .filter(s => s[level] > 0)
         .sort((a, b) => b[level] - a[level])
-        .slice(0, 10);
+        .slice(0, 5); // TOP 5 au lieu de 10
 
     if (levelScores.length === 0) {
         container.innerHTML = '<div class="no-scores">Aucun score enregistré</div>';
@@ -317,9 +339,8 @@ function displayLevelScores(scores, level, container) {
         const scoreItem = document.createElement('div');
         scoreItem.className = 'score-item';
         
-        const displayPseudo = score.pseudo.length > 3 
-            ? score.pseudo.substring(0, 3) + '...' 
-            : score.pseudo;
+        // Toujours afficher exactement les 3 premières lettres
+        const displayPseudo = score.pseudo.substring(0, 3).toUpperCase();
 
         const timeInSeconds = Math.floor((10000 - score[level]) / 10);
         const minutes = Math.floor(timeInSeconds / 60);
@@ -327,9 +348,9 @@ function displayLevelScores(scores, level, container) {
 
         scoreItem.innerHTML = `
             <span class="score-rank">#${index + 1}</span>
-            <span class="score-pseudo">${displayPseudo}</span>
             <span class="score-time">${minutes}:${seconds.toString().padStart(2, '0')}</span>
             <span class="score-points">${score[level]} pts</span>
+            <span class="score-pseudo">${displayPseudo}</span>
         `;
         
         container.appendChild(scoreItem);
@@ -357,23 +378,40 @@ async function loadWords() {
             const config  = LEVEL_CONFIG[currentLevel];
             const maxFit  = Math.max(config.rows, config.cols);
             
-            // Filtrer par taille ET privilégier les mots courts/moyens pour un meilleur placement
-            const eligible = allWords.filter(w => w.length >= 3 && w.length <= maxFit);
+            // OPTIMISATION : Filtrer par longueur adaptée au niveau
+            // On privilégie les mots courts/moyens qui se placent plus facilement
+            let minLength = 3;
+            let maxLength = maxFit;
+            
+            // Adapter la longueur selon le niveau
+            if (currentLevel === 1) {
+                // Facile : mots courts (3-6 lettres)
+                maxLength = Math.min(6, maxFit);
+            } else if (currentLevel === 2) {
+                // Intermédiaire : mots moyens (3-8 lettres)
+                maxLength = Math.min(8, maxFit);
+            } else if (currentLevel === 3 || currentLevel === 4) {
+                // Difficile et Mystère : profiter des grilles 12×12 avec mots plus longs (4-10 lettres)
+                minLength = 4;
+                maxLength = Math.min(10, maxFit);
+            }
+            
+            const eligible = allWords.filter(w => w.length >= minLength && w.length <= maxLength);
 
-            console.log(`📏 Filtrage (3-${maxFit} lettres) : ${allWords.length} → ${eligible.length} mots éligibles`);
+            console.log(`📏 Filtrage (${minLength}-${maxLength} lettres) : ${allWords.length} → ${eligible.length} mots éligibles`);
 
             if (eligible.length < config.wordCount) {
                 throw new Error(`Pas assez de mots disponibles.\n\nTrouvés: ${eligible.length} mots\nRequis: ${config.wordCount} mots`);
             }
 
             // OPTIMISATION MAJEURE : Charger beaucoup plus de mots pour avoir un meilleur choix
-            // On prend 5x le nombre nécessaire pour maximiser les chances de placement
-            const poolSize = Math.min(config.wordCount * 5, eligible.length);
+            // Pour les grilles 12×12, on charge encore plus de mots (15x)
+            const multiplier = (currentLevel === 3 || currentLevel === 4) ? 15 : 10;
+            const poolSize = Math.min(config.wordCount * multiplier, eligible.length);
             const wordPool = shuffleArray(eligible).slice(0, poolSize);
             
             console.log(`✅ Pool de ${poolSize} mots disponibles pour sélection optimale`);
             
-            // On va essayer de placer les mots et sélectionner les meilleurs
             wordsToFind = wordPool;
             
         } else {
@@ -476,7 +514,7 @@ async function startGame() {
 // CONSTRUCTION OPTIMISÉE DE LA GRILLE
 // =====================================================
 function buildGridOptimized(rows, cols, wordPool, targetCount) {
-    const maxAttempts = 50;
+    const maxAttempts = 100;
     
     console.log(`🎯 Objectif: placer exactement ${targetCount} mots dans grille ${rows}x${cols}`);
     console.log(`📦 Pool disponible: ${wordPool.length} mots`);
@@ -485,13 +523,47 @@ function buildGridOptimized(rows, cols, wordPool, targetCount) {
         // Initialiser grille vide
         gridData = Array(rows).fill(null).map(() => Array(cols).fill(''));
         
-        // Mélanger le pool et prendre un sous-ensemble différent à chaque tentative
+        // STRATÉGIE OPTIMISÉE : Mix de longueurs pour plus de variété
         const shuffledPool = shuffleArray(wordPool);
         
-        // Trier par longueur décroissante (placer les longs d'abord)
-        const sortedWords = shuffledPool.sort((a, b) => b.length - a.length);
+        // Créer des groupes par longueur
+        const shortWords = shuffledPool.filter(w => w.length <= 5);
+        const mediumWords = shuffledPool.filter(w => w.length >= 6 && w.length <= 8);
+        const longWords = shuffledPool.filter(w => w.length >= 9);
+        
+        // Mélanger chaque groupe
+        const mixedShortWords = shuffleArray(shortWords);
+        const mixedMediumWords = shuffleArray(mediumWords);
+        const mixedLongWords = shuffleArray(longWords);
+        
+        // Combiner pour avoir une bonne diversité : 
+        // 1/3 courts, 1/3 moyens, 1/3 longs (si disponibles)
+        const sortedWords = [];
+        const maxPerGroup = Math.ceil(targetCount / 3);
+        
+        // Alterner les longueurs pour meilleur placement
+        for (let i = 0; i < maxPerGroup * 3; i++) {
+            const groupIndex = i % 3;
+            
+            if (groupIndex === 0 && mixedShortWords.length > 0) {
+                sortedWords.push(mixedShortWords.shift());
+            } else if (groupIndex === 1 && mixedMediumWords.length > 0) {
+                sortedWords.push(mixedMediumWords.shift());
+            } else if (groupIndex === 2 && mixedLongWords.length > 0) {
+                sortedWords.push(mixedLongWords.shift());
+            } else {
+                // Fallback : prendre n'importe quel mot restant
+                if (mixedShortWords.length > 0) sortedWords.push(mixedShortWords.shift());
+                else if (mixedMediumWords.length > 0) sortedWords.push(mixedMediumWords.shift());
+                else if (mixedLongWords.length > 0) sortedWords.push(mixedLongWords.shift());
+            }
+            
+            if (sortedWords.length >= shuffledPool.length) break;
+        }
         
         const placedWords = [];
+        let consecutiveFailures = 0;
+        const maxConsecutiveFailures = 5;
         
         // Essayer de placer les mots un par un
         for (const word of sortedWords) {
@@ -502,6 +574,14 @@ function buildGridOptimized(rows, cols, wordPool, targetCount) {
             const placed = tryPlaceWordOptimized(word, rows, cols);
             if (placed) {
                 placedWords.push(word);
+                consecutiveFailures = 0;
+            } else {
+                consecutiveFailures++;
+                
+                // Si trop d'échecs consécutifs, recommencer la grille
+                if (consecutiveFailures >= maxConsecutiveFailures) {
+                    break;
+                }
             }
         }
         
@@ -515,6 +595,18 @@ function buildGridOptimized(rows, cols, wordPool, targetCount) {
             if (verifyAllWordsInGrid()) {
                 fillEmptyCells();
                 console.log('✅ SUCCÈS ! Grille complète avec le bon nombre de mots');
+                console.log('📊 Répartition des longueurs:', getWordLengthDistribution(placedWords));
+                return true;
+            }
+        }
+        
+        // Si on est proche du but (90% ou plus), on peut accepter
+        if (placedWords.length >= Math.floor(targetCount * 0.9) && attempt > maxAttempts / 2) {
+            wordsToFind = placedWords;
+            if (verifyAllWordsInGrid()) {
+                fillEmptyCells();
+                console.log(`✅ SUCCÈS PARTIEL ! Grille avec ${placedWords.length}/${targetCount} mots`);
+                console.log('📊 Répartition des longueurs:', getWordLengthDistribution(placedWords));
                 return true;
             }
         }
@@ -524,8 +616,18 @@ function buildGridOptimized(rows, cols, wordPool, targetCount) {
     return false;
 }
 
+// Fonction utilitaire pour afficher la distribution des longueurs
+function getWordLengthDistribution(words) {
+    const distribution = {};
+    words.forEach(word => {
+        const len = word.length;
+        distribution[len] = (distribution[len] || 0) + 1;
+    });
+    return distribution;
+}
+
 function tryPlaceWordOptimized(word, rows, cols) {
-    // Calculer TOUTES les positions possibles
+    // Calculer TOUTES les positions possibles AVANT de choisir
     const possiblePlacements = [];
     
     for (let r = 0; r < rows; r++) {
@@ -544,11 +646,12 @@ function tryPlaceWordOptimized(word, rows, cols) {
         return false;
     }
     
-    // Trier par score décroissant et choisir parmi les meilleurs
+    // STRATÉGIE AMÉLIORÉE : Privilégier les placements qui partagent des lettres
+    // Trier par score décroissant
     possiblePlacements.sort((a, b) => b.score - a.score);
     
-    // Choisir aléatoirement parmi les 30% meilleurs placements
-    const topChoices = Math.max(1, Math.floor(possiblePlacements.length * 0.3));
+    // Choisir aléatoirement parmi les 20% meilleurs placements
+    const topChoices = Math.max(1, Math.floor(possiblePlacements.length * 0.2));
     const randomChoice = possiblePlacements[Math.floor(Math.random() * topChoices)];
     
     placeWord(word, randomChoice.row, randomChoice.col, randomChoice.direction);
@@ -559,24 +662,49 @@ function calculatePlacementScore(word, startRow, startCol, direction, rows, cols
     let score = 0;
     const { dr, dc } = direction;
     
-    // Bonus pour les placements qui réutilisent des lettres existantes
+    let sharedLetters = 0;
+    let emptySpaces = 0;
+    
+    // Analyser chaque position du mot
     for (let i = 0; i < word.length; i++) {
         const r = startRow + (i * dr);
         const c = startCol + (i * dc);
         
         if (gridData[r][c] === word[i]) {
-            score += 10; // Réutilisation de lettre = bon !
+            sharedLetters++;
+            score += 20; // BONUS IMPORTANT pour réutilisation de lettre
+        } else if (gridData[r][c] === '') {
+            emptySpaces++;
         }
     }
     
-    // Bonus pour les placements centraux (évite les bords)
+    // BONUS pour les mots qui partagent des lettres (meilleur entrelacement)
+    if (sharedLetters > 0) {
+        score += sharedLetters * 15;
+    }
+    
+    // BONUS pour les placements centraux (évite les bords)
     const centerRow = rows / 2;
     const centerCol = cols / 2;
-    const distanceFromCenter = Math.abs(startRow - centerRow) + Math.abs(startCol - centerCol);
-    score += Math.max(0, 10 - distanceFromCenter);
+    const avgRow = startRow + (word.length * dr) / 2;
+    const avgCol = startCol + (word.length * dc) / 2;
+    const distanceFromCenter = Math.abs(avgRow - centerRow) + Math.abs(avgCol - centerCol);
+    score += Math.max(0, 15 - distanceFromCenter);
     
-    // Bonus pour la variété de direction
-    score += Math.random() * 5;
+    // BONUS pour la variété de direction (favorise H/V en premier)
+    if (direction.name === 'HORIZONTAL_RIGHT' || direction.name === 'VERTICAL_DOWN') {
+        score += 10;
+    } else if (direction.name === 'HORIZONTAL_LEFT' || direction.name === 'VERTICAL_UP') {
+        score += 8;
+    } else {
+        score += 5; // Diagonales en dernier
+    }
+    
+    // BONUS pour les mots qui laissent de l'espace libre autour
+    score += emptySpaces * 2;
+    
+    // Facteur aléatoire pour diversité
+    score += Math.random() * 10;
     
     return score;
 }
