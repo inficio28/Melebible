@@ -11,10 +11,10 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // CONFIG PAR NIVEAU
 // =====================================================
 const LEVEL_CONFIG = {
-    1: { rows: 7,  cols: 7,  name: 'Facile',        badgeClass: 'easy',    icon: '🟢', wordCount: 10  },
-    2: { rows: 10, cols: 10, name: 'Intermédiaire', badgeClass: 'medium',  icon: '🟡', wordCount: 15 },
-    3: { rows: 12, cols: 12, name: 'Difficile',     badgeClass: 'hard',    icon: '🔴', wordCount: 20 },
-    4: { rows: 12, cols: 12, name: 'Mode Mystère',  badgeClass: 'suicide', icon: '❓', wordCount: 20 },
+    1: { rows: 8,  cols: 8,  name: 'Facile',        badgeClass: 'easy',    icon: '🟢', wordCount: 8  },
+    2: { rows: 10, cols: 10, name: 'Intermédiaire', badgeClass: 'medium',  icon: '🟡', wordCount: 12 },
+    3: { rows: 12, cols: 12, name: 'Difficile',     badgeClass: 'hard',    icon: '🔴', wordCount: 16 },
+    4: { rows: 12, cols: 12, name: 'Mode Mystère',  badgeClass: 'suicide', icon: '❓', wordCount: 16 },
 };
 
 // =====================================================
@@ -691,13 +691,14 @@ function calculatePlacementScore(word, startRow, startCol, direction, rows, cols
     const distanceFromCenter = Math.abs(avgRow - centerRow) + Math.abs(avgCol - centerCol);
     score += Math.max(0, 15 - distanceFromCenter);
     
-    // BONUS pour la variété de direction (favorise H/V en premier)
+    // BONUS pour la variété de direction - grilles carrées optimisées
+    // Favoriser horizontal et vertical en priorité
     if (direction.name === 'HORIZONTAL_RIGHT' || direction.name === 'VERTICAL_DOWN') {
-        score += 10;
+        score += 12;
     } else if (direction.name === 'HORIZONTAL_LEFT' || direction.name === 'VERTICAL_UP') {
-        score += 8;
+        score += 10;
     } else {
-        score += 5; // Diagonales en dernier
+        score += 6; // Diagonales
     }
     
     // BONUS pour les mots qui laissent de l'espace libre autour
@@ -1155,24 +1156,57 @@ function optimizeGridSize(gridSize) {
     const header = document.querySelector(".game-header");
     const words = document.querySelector(".words-compact");
 
-    const availableWidth = containerRect.width - 20;
+    // Marges et padding pour un meilleur espacement
+    const horizontalMargin = 40;
+    const verticalMargin = 80;
+
+    const availableWidth = containerRect.width - horizontalMargin;
     const availableHeight = window.innerHeight
         - (header ? header.offsetHeight : 0)
         - (words ? words.offsetHeight : 0)
-        - 60;
+        - verticalMargin;
 
-    const maxGridSize = Math.min(availableWidth, availableHeight);
+    // Récupérer rows et cols du niveau actuel
+    const cfg = LEVEL_CONFIG[currentLevel];
+    const rows = cfg.rows;
+    const cols = cfg.cols;
 
-    const cellSize = Math.floor(maxGridSize / gridSize);
+    // Calculer la taille de cellule basée sur la largeur et hauteur disponibles
+    const cellSizeByWidth = Math.floor(availableWidth / cols);
+    const cellSizeByHeight = Math.floor(availableHeight / rows);
+    
+    // Prendre la plus petite pour que tout rentre, avec une limite max
+    let cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
+    
+    // Limiter la taille max pour garder une bonne ergonomie
+    const maxCellSize = 65;
+    const minCellSize = 25;
+    cellSize = Math.max(minCellSize, Math.min(maxCellSize, cellSize));
 
-    grid.style.width = `${cellSize * gridSize}px`;
-    grid.style.height = `${cellSize * gridSize}px`;
+    const gridWidth = cellSize * cols;
+    const gridHeight = cellSize * rows;
+
+    grid.style.width = `${gridWidth}px`;
+    grid.style.height = `${gridHeight}px`;
+
+    // Ajuster le gap en fonction de la taille des cellules
+    const gapSize = Math.max(1, Math.min(3, Math.floor(cellSize / 15)));
+    grid.style.gap = `${gapSize}px`;
 
     document.querySelectorAll(".grid-cell").forEach(cell => {
         cell.style.width = `${cellSize}px`;
         cell.style.height = `${cellSize}px`;
-        cell.style.fontSize = `${cellSize * 0.45}px`;
+        // Taille de police proportionnelle et lisible
+        const fontSize = Math.max(12, Math.min(32, cellSize * 0.55));
+        cell.style.fontSize = `${fontSize}px`;
+        
+        // Ajuster le border-radius en fonction de la taille
+        const borderRadius = Math.max(3, Math.min(8, Math.floor(cellSize / 8)));
+        cell.style.borderRadius = `${borderRadius}px`;
     });
+    
+    // Log pour debug
+    console.log(`📐 Grille optimisée: ${cols}x${rows}, cellules: ${cellSize}px, total: ${gridWidth}x${gridHeight}px`);
 }
 
 /* Resize dynamique */

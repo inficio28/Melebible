@@ -839,6 +839,8 @@ body {
     width: fit-content;
     max-width: 98vw;
     margin: 0 auto;
+    position: relative;
+    z-index: 1;
 }
 
 /* Desktop */
@@ -916,6 +918,7 @@ body {
     user-select: none;
     border: 2px solid rgba(255, 255, 255, 0.1);
     position: relative;
+    z-index: 2;
     -webkit-tap-highlight-color: transparent;
     touch-action: none;
     
@@ -1023,7 +1026,7 @@ body {
         background: linear-gradient(135deg, var(--primary), var(--accent));
         transform: scale(1.08);
         box-shadow: 0 5px 15px rgba(255, 107, 53, 0.5);
-        z-index: 10;
+        z-index: 20;
     }
 }
 
@@ -1035,6 +1038,7 @@ body {
     transform: scale(1.05);
     box-shadow: 0 4px 12px rgba(247, 147, 30, 0.6);
     animation: selectPulse 0.3s ease;
+    z-index: 15;
 }
 
 @keyframes selectPulse {
@@ -1044,9 +1048,10 @@ body {
 }
 
 .grid-cell.found {
-    background: linear-gradient(135deg, var(--success), #04AA7C);
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
     animation: found 0.6s ease;
-    border-color: var(--success);
+    border-color: #3b82f6;
+    z-index: 10;
     /* Permettre la réutilisation des lettres trouvées */
 }
 
