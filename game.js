@@ -231,7 +231,7 @@ async function createOrGetPlayer(pseudo) {
                     facile: 0, 
                     intermediaire: 0, 
                     difficile: 0,
-                    suicide: 0,
+                    mystere: 0,
                     nbconnexion: 1,
                     lastconnexion_at: new Date().toISOString()
                 }]);
@@ -304,7 +304,7 @@ async function showScoreboard() {
     try {
         const { data: scores, error } = await supabaseClient
             .from('scores')
-            .select('pseudo, facile, intermediaire, difficile, suicide')
+            .select('pseudo, facile, intermediaire, difficile, mystere')
             .order('facile', { ascending: false });
 
         if (error) throw error;
@@ -312,7 +312,7 @@ async function showScoreboard() {
         displayLevelScores(scores, 'facile', scoreboardEasy);
         displayLevelScores(scores, 'intermediaire', scoreboardMedium);
         displayLevelScores(scores, 'difficile', scoreboardHard);
-        displayLevelScores(scores, 'suicide', scoreboardSuicide);
+        displayLevelScores(scores, 'mystere', scoreboardSuicide);
 
         showPage(scoreboardpage);
 
@@ -1102,7 +1102,7 @@ async function saveScore() {
     try {
         const { data: player, error: fetchError } = await supabaseClient
             .from('scores')
-            .select('facile, intermediaire, difficile, suicide')
+            .select('facile, intermediaire, difficile, mystere')
             .eq('pseudo', currentPlayer)
             .single();
 
@@ -1111,7 +1111,7 @@ async function saveScore() {
         const col = currentLevel === 1 ? 'facile' 
                   : currentLevel === 2 ? 'intermediaire' 
                   : currentLevel === 3 ? 'difficile'
-                  : 'suicide';
+                  : 'mystere';
         
         const bestScore = player[col] || 0;
 
