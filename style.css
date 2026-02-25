@@ -297,6 +297,75 @@ body {
     padding: 0.5rem;
 }
 
+/* CASE À COCHER MOTS FACILES */
+.easy-words-container {
+    margin-top: 1rem;
+}
+
+.easy-words-label {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    cursor: pointer;
+    padding: 0.7rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    border: 2px solid rgba(255, 107, 53, 0.15);
+    transition: all 0.3s ease;
+    user-select: none;
+}
+
+.easy-words-label:hover {
+    background: rgba(6, 214, 160, 0.1);
+    border-color: var(--success);
+}
+
+.easy-words-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--primary);
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.easy-words-checkbox:checked {
+    background: var(--success);
+    border-color: var(--success);
+}
+
+.easy-words-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.easy-words-text {
+    font-size: clamp(0.85rem, 2.5vw, 1rem);
+    font-weight: bold;
+    color: var(--light);
+    letter-spacing: 0.03em;
+}
+
+.easy-words-label:has(.easy-words-checkbox:checked) {
+    background: rgba(6, 214, 160, 0.15);
+    border-color: var(--success);
+}
+
+.easy-words-label:has(.easy-words-checkbox:checked) .easy-words-text {
+    color: var(--success);
+}
+
 .level-btn {
     display: flex;
     align-items: center;

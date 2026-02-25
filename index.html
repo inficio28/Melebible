@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>Mots Croisés - Jeu de Mots Mêlés</title>
+    <title>Jeu de Mots Mêlés</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -48,6 +48,25 @@
             </div>
 
             <div class="level-card">
+
+                <!-- Sélecteur de thème -->
+                <div class="theme-selector-container">
+                    <label for="themeSelect">🎨 Thème des mots</label>
+                    <select id="themeSelect" class="theme-select">
+                        <option value="mots_bible">📖 Biblique</option>
+                        <option value="mots_geo">🌍 Géographie</option>
+                        <option value="mots_nature">🌿 Nature</option>
+                        <option value="mots_science">🔬 Science</option>
+                    </select>
+
+                    <div class="easy-words-container">
+                        <label class="easy-words-label">
+                            <input type="checkbox" id="easyWordsCheck" class="easy-words-checkbox">
+                            <span class="easy-words-text">⭐ Mots faciles uniquement</span>
+                        </label>
+                    </div>
+                </div>
+
                 <button class="level-btn level-easy" data-level="1">
                     <span class="level-icon">🟢</span>
                     <span class="level-name">Facile</span>

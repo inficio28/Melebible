@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Fond arrondi dégradé vert -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a7a4a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0d4f2e;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="cellGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2ecc71;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#27ae60;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Fond -->
+  <rect width="512" height="512" rx="90" ry="90" fill="url(#bgGrad)"/>
+
+  <!-- Grille 5x5 de cellules -->
+  <!-- Taille cellule: 72px, espacement: 8px, début: 72px -->
+  <!-- Ligne 1 -->
+  <rect x="68" y="68" width="72" height="72" rx="10" fill="url(#cellGrad)" opacity="0.9"/>
+  <rect x="152" y="68" width="72" height="72" rx="10" fill="url(#cellGrad)" opacity="0.5"/>
+  <rect x="236" y="68" width="72" height="72" rx="10" fill="url(#cellGrad)" opacity="0.5"/>
+  <rect x="320" y="68" width="72" height="72" rx="10" fill="url(#cellGrad)" opacity="0.5"/>
+  <rect x="404" y="68" width="72" height="72" rx="10" fill="url(#cellGrad)" opacity="0.9"/>
+
+  <!-- Ligne 2 -->
+  <rect x="68" y="152" width="72" height="72" rx="10" fill="url(#cellGrad)" opacity="0.5"/>
+  <rect x="152" y="152" width="72" height="72" rx="10" fill="#ffffff" opacity="0.95"/>
+  <rect x="236" y="152" width="72" height="72" rx="10" fill="#ffffff" opacity="0.95"/>
+  <rect x="320" y="152" width="72" height="72" rx="10" fill="#ffffff" opacity="0.95"/>
+  <rect x="404" y="152" width="72" height="72" rx="10" fill="url(#cellGrad)" opacity="0.5"/>
+
+  <!-- Ligne 3 -->
+  <rect x="68" y="236" width="72" height="72" rx="10" fill="url(#cellGrad)" opacity="0.9"/>
+  <rect x="152" y="236" width="72" height="72" rx="10" fill="#ffffff" opacity="0.95"/>
+  <rect x="236" y="236" width="72" height="72" rx="10" fill="url(#cellGrad)" opacity="0.5"/>
+  <rect x="320" y="236" width="72" height="72" rx="10" fill="#ffffff" opacity="0.95"/>
+  <rect x="404" y="236" width="72" height="72" rx="10" fill="url(#cellGrad)" opacity="0.9"/>
+
+  <!-- Ligne 4 -->
+  <rect x="68" y="320" width="72" height="72" rx="10" fill="url(#cellGrad)" opacity="0.5"/>
+  <rect x="152" y="320" width="72" height="72" rx="10" fill="#ffffff" opacity="0.95"/>
+  <rect x="236" y="320" width="72" height="72" rx="10" fill="#ffffff" opacity="0.95"/>
+  <rect x="320" y="320" width="72" height="72" rx="10" fill="#ffffff" opacity="0.95"/>
+  <rect x="404" y="320" width="72" height="72" rx="10" fill="url(#cellGrad)" opacity="0.5"/>
+
+  <!-- Ligne 5 -->
+  <rect x="68" y="404" width="72" height="72" rx="10" fill="url(#cellGrad)" opacity="0.9"/>
+  <rect x="152" y="404" width="72" height="72" rx="10" fill="url(#cellGrad)" opacity="0.5"/>
+  <rect x="236" y="404" width="72" height="72" rx="10" fill="url(#cellGrad)" opacity="0.5"/>
+  <rect x="320" y="404" width="72" height="72" rx="10" fill="url(#cellGrad)" opacity="0.5"/>
+  <rect x="404" y="404" width="72" height="72" rx="10" fill="url(#cellGrad)" opacity="0.9"/>
+
+  <!-- Mot surligné horizontal (ligne 2, cellules 2-4) -->
+  <rect x="148" y="148" width="248" height="80" rx="12" fill="#f1c40f" opacity="0.7"/>
+
+  <!-- Mot surligné vertical (colonne 1, lignes 1-5) -->
+  <rect x="64" y="64" width="80" height="416" rx="12" fill="#f1c40f" opacity="0.35"/>
+
+  <!-- Lettres dans les cellules blanches -->
+  <text x="188" y="207" font-family="Arial Black, Arial" font-weight="900" font-size="52" fill="#0d4f2e" text-anchor="middle">M</text>
+  <text x="272" y="207" font-family="Arial Black, Arial" font-weight="900" font-size="52" fill="#0d4f2e" text-anchor="middle">O</text>
+  <text x="356" y="207" font-family="Arial Black, Arial" font-weight="900" font-size="52" fill="#0d4f2e" text-anchor="middle">T</text>
+
+  <text x="188" y="291" font-family="Arial Black, Arial" font-weight="900" font-size="52" fill="#1a7a4a" text-anchor="middle">S</text>
+  <text x="356" y="291" font-family="Arial Black, Arial" font-weight="900" font-size="52" fill="#1a7a4a" text-anchor="middle">X</text>
+
+  <text x="188" y="375" font-family="Arial Black, Arial" font-weight="900" font-size="52" fill="#1a7a4a" text-anchor="middle">E</text>
+  <text x="272" y="375" font-family="Arial Black, Arial" font-weight="900" font-size="52" fill="#1a7a4a" text-anchor="middle">L</text>
+  <text x="356" y="375" font-family="Arial Black, Arial" font-weight="900" font-size="52" fill="#1a7a4a" text-anchor="middle">A</text>
+
+  <!-- Lettres dans les coins de la grille (fond vert) -->
+  <text x="104" y="123" font-family="Arial Black, Arial" font-weight="900" font-size="44" fill="#ffffff" text-anchor="middle">M</text>
+  <text x="440" y="123" font-family="Arial Black, Arial" font-weight="900" font-size="44" fill="#ffffff" text-anchor="middle">S</text>
+  <text x="104" y="207" font-family="Arial Black, Arial" font-weight="900" font-size="44" fill="#ffffff" text-anchor="middle">O</text>
+  <text x="104" y="291" font-family="Arial Black, Arial" font-weight="900" font-size="44" fill="#ffffff" text-anchor="middle">T</text>
+  <text x="104" y="375" font-family="Arial Black, Arial" font-weight="900" font-size="44" fill="#ffffff" text-anchor="middle">S</text>
+  <text x="104" y="459" font-family="Arial Black, Arial" font-weight="900" font-size="44" fill="#ffffff" text-anchor="middle">W</text>
+</svg>

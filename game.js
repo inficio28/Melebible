@@ -45,6 +45,8 @@ let isSelecting        = false;
 let selectionDirection = null;
 let isDatabaseConnected = false;
 let isGameLoading      = false;
+let currentTheme       = 'mots_bible';
+let easyWordsOnly      = false;
 
 // ⏱️ VARIABLES POUR LE CHRONOMÈTRE
 let timerInterval      = null;
@@ -71,6 +73,8 @@ const wordGrid       = document.getElementById('wordGrid');
 const wordList       = document.getElementById('wordList');
 const newGameBtn     = document.getElementById('newGameBtn');
 const dbStatus       = document.getElementById('dbStatus');
+const themeSelect    = document.getElementById('themeSelect');
+const easyWordsCheck = document.getElementById('easyWordsCheck');
 const levelGreeting  = document.getElementById('levelGreeting');
 
 // Éléments du scoreboard
@@ -144,6 +148,14 @@ function savePseudoToLocal(pseudo) {
 // EVENT LISTENERS
 // =====================================================
 startBtn.addEventListener('click', goToLevelSelection);
+
+// Thème et filtre mots faciles
+themeSelect.addEventListener('change', () => {
+    currentTheme = themeSelect.value;
+});
+easyWordsCheck.addEventListener('change', () => {
+    easyWordsOnly = easyWordsCheck.checked;
+});
 scoresBtn.addEventListener('click', showScoreboard);
 backToHomeBtn.addEventListener('click', backToHome);
 backToHomeBtnScore.addEventListener('click', backToHome);
@@ -362,17 +374,24 @@ function displayLevelScores(scores, level, container) {
 // =====================================================
 async function loadWords() {
     try {
-        const { data, error } = await supabaseClient
-            .from('mots')
-            .select('liste');
+        // Construire la requête selon le thème et le filtre mots faciles
+        let query = supabaseClient
+            .from(currentTheme)
+            .select('francais');
+
+        if (easyWordsOnly) {
+            query = query.eq('niveau', 1);
+        }
+
+        const { data, error } = await query;
 
         if (error) throw error;
 
-        console.log(`🔍 Requête BDD - Résultats: ${data ? data.length : 0}`);
+        console.log(`🔍 Requête BDD [${currentTheme}${easyWordsOnly ? ' - facile' : ''}] - Résultats: ${data ? data.length : 0}`);
 
         if (data && data.length > 0) {
             const allWords = data
-                .map(row => row.liste.trim().toUpperCase())
+                .map(row => row.francais.trim().toUpperCase())
                 .filter(w => w.length > 0);
 
             const config  = LEVEL_CONFIG[currentLevel];
