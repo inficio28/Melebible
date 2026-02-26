@@ -47,6 +47,7 @@ let isDatabaseConnected = false;
 let isGameLoading      = false;
 let currentTheme       = 'mots_bible';
 let easyWordsOnly      = false;
+let currentLanguage    = 'francais'; // 'francais' ou 'anglais'
 
 // ⏱️ VARIABLES POUR LE CHRONOMÈTRE
 let timerInterval      = null;
@@ -155,6 +156,18 @@ themeSelect.addEventListener('change', () => {
 });
 easyWordsCheck.addEventListener('change', () => {
     easyWordsOnly = easyWordsCheck.checked;
+});
+
+// Sélecteur de langue
+document.getElementById('langFr').addEventListener('click', () => {
+    currentLanguage = 'francais';
+    document.getElementById('langFr').classList.add('lang-active');
+    document.getElementById('langEn').classList.remove('lang-active');
+});
+document.getElementById('langEn').addEventListener('click', () => {
+    currentLanguage = 'anglais';
+    document.getElementById('langEn').classList.add('lang-active');
+    document.getElementById('langFr').classList.remove('lang-active');
 });
 scoresBtn.addEventListener('click', showScoreboard);
 backToHomeBtn.addEventListener('click', backToHome);
@@ -334,13 +347,22 @@ async function showScoreboard() {
     }
 }
 
+function formatTime(totalSeconds) {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    if (h > 0) return `${h}h ${m}min ${s}s`;
+    if (m > 0) return `${m}min ${s}s`;
+    return `${s}s`;
+}
+
 function displayLevelScores(scores, level, container) {
     container.innerHTML = '';
 
     const levelScores = scores
         .filter(s => s[level] > 0)
-        .sort((a, b) => b[level] - a[level])
-        .slice(0, 5); // TOP 5 au lieu de 10
+        .sort((a, b) => a[level] - b[level]) // tri croissant : plus rapide en premier
+        .slice(0, 5);
 
     if (levelScores.length === 0) {
         container.innerHTML = '<div class="no-scores">Aucun score enregistré</div>';
@@ -354,14 +376,9 @@ function displayLevelScores(scores, level, container) {
         // Toujours afficher exactement les 3 premières lettres
         const displayPseudo = score.pseudo.substring(0, 3).toUpperCase();
 
-        const timeInSeconds = Math.floor((10000 - score[level]) / 10);
-        const minutes = Math.floor(timeInSeconds / 60);
-        const seconds = timeInSeconds % 60;
-
         scoreItem.innerHTML = `
             <span class="score-rank">#${index + 1}</span>
-            <span class="score-time">${minutes}:${seconds.toString().padStart(2, '0')}</span>
-            <span class="score-points">${score[level]} pts</span>
+            <span class="score-time">${formatTime(score[level])}</span>
             <span class="score-pseudo">${displayPseudo}</span>
         `;
         
@@ -375,9 +392,10 @@ function displayLevelScores(scores, level, container) {
 async function loadWords() {
     try {
         // Construire la requête selon le thème et le filtre mots faciles
+        const langCol = currentLanguage === 'anglais' ? 'anglais' : 'francais';
         let query = supabaseClient
             .from(currentTheme)
-            .select('francais');
+            .select(langCol === 'anglais' ? 'anglais, niveau' : 'francais, niveau');
 
         if (easyWordsOnly) {
             query = query.eq('niveau', 1);
@@ -387,11 +405,11 @@ async function loadWords() {
 
         if (error) throw error;
 
-        console.log(`🔍 Requête BDD [${currentTheme}${easyWordsOnly ? ' - facile' : ''}] - Résultats: ${data ? data.length : 0}`);
+        console.log(`🔍 Requête BDD [${currentTheme} - ${currentLanguage}${easyWordsOnly ? ' - facile' : ''}] - Résultats: ${data ? data.length : 0}`);
 
         if (data && data.length > 0) {
             const allWords = data
-                .map(row => row.francais.trim().toUpperCase())
+                .map(row => (row[langCol] || '').trim().toUpperCase())
                 .filter(w => w.length > 0);
 
             const config  = LEVEL_CONFIG[currentLevel];
@@ -1103,16 +1121,12 @@ function updateWordList(word) {
 async function endGame() {
     stopTimer();
     
-    currentScore = getTimeScore();
-    scoreValueDisplay.textContent = currentScore;
-    
     await saveScore();
     
     const cfg = LEVEL_CONFIG[currentLevel];
-    const minutes = Math.floor(elapsedSeconds / 60);
-    const seconds = elapsedSeconds % 60;
+    scoreValueDisplay.textContent = formatTime(elapsedSeconds);
     
-    alert(`🎉 Bravo ${currentPlayer} !\n\nTous les mots trouvés !\nNiveau : ${cfg.name}\nTemps : ${minutes}min ${seconds}s\nScore : ${currentScore} pts`);
+    alert(`🎉 Bravo ${currentPlayer} !\n\nTous les mots trouvés !\nNiveau : ${cfg.name}\nTemps : ${formatTime(elapsedSeconds)}`);
 }
 
 async function saveScore() {
@@ -1132,15 +1146,15 @@ async function saveScore() {
                   : currentLevel === 3 ? 'difficile'
                   : 'mystere';
         
-        const bestScore = player[col] || 0;
+        const bestTime = player[col] || 0;
 
-        if (currentScore > bestScore) {
+        if (bestTime === 0 || elapsedSeconds < bestTime) {
             const { error } = await supabaseClient
                 .from('scores')
-                .update({ [col]: currentScore })
+                .update({ [col]: elapsedSeconds })
                 .eq('pseudo', currentPlayer);
             if (error) throw error;
-            console.log(`✅ Nouveau record pour ${currentPlayer} (${col}) : ${currentScore} pts (${elapsedSeconds}s)`);
+            console.log(`✅ Nouveau record pour ${currentPlayer} (${col}) : ${elapsedSeconds}s`);
         }
     } catch (error) {
         console.error('❌ Erreur sauvegarde score :', error);
