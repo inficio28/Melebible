@@ -47,6 +47,22 @@
                 <div class="grid-letter">T</div>
                 <div class="grid-letter">S</div>
             </div>
+
+            <!-- Bouton installer sur l'écran d'accueil -->
+            <div id="installContainer" style="display:none; margin-top: 16px; text-align: center;">
+                <button id="installBtn" class="install-button">📲 Ajouter à l'écran d'accueil</button>
+            </div>
+
+            <!-- Popup instructions iOS -->
+            <div id="iosInstallPopup" style="display:none; position:fixed; bottom:0; left:0; right:0; background:#fff; border-top-left-radius:16px; border-top-right-radius:16px; padding:20px 24px 32px; box-shadow:0 -4px 20px rgba(0,0,0,0.2); z-index:9999; text-align:center; font-family:sans-serif;">
+                <button onclick="document.getElementById('iosInstallPopup').style.display='none'" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;">✕</button>
+                <p style="font-size:17px;font-weight:600;margin:0 0 12px;">Ajouter à l'écran d'accueil</p>
+                <p style="font-size:14px;color:#555;margin:0 0 16px; line-height:1.5;">
+                    1. Appuie sur <strong>Partager</strong> <span style="font-size:18px;">⬆️</span> en bas de Safari<br>
+                    2. Puis choisis <strong>« Sur l'écran d'accueil »</strong> <span style="font-size:18px;">➕</span>
+                </p>
+                <div style="width:48px;height:4px;background:#ddd;border-radius:4px;margin:0 auto;"></div>
+            </div>
         </div>
     </div>
 
@@ -188,5 +204,65 @@
     </div>
 
     <script src="game.js"></script>
+    <style>
+        .install-button {
+            background: linear-gradient(135deg, #1a7a4a, #25a86a);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(26,122,74,0.35);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .install-button:active {
+            transform: scale(0.97);
+            box-shadow: 0 2px 6px rgba(26,122,74,0.25);
+        }
+    </style>
+    <script>
+        // --- Logique installation PWA ---
+        let deferredPrompt = null;
+        const installContainer = document.getElementById('installContainer');
+        const installBtn = document.getElementById('installBtn');
+        const iosPopup = document.getElementById('iosInstallPopup');
+
+        const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        const isInStandaloneMode = ('standalone' in navigator) && navigator.standalone;
+
+        // Android / Chrome
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installContainer.style.display = 'block';
+        });
+
+        // iOS : afficher si pas déjà installée
+        if (isIOS && !isInStandaloneMode) {
+            installContainer.style.display = 'block';
+        }
+
+        // Cacher si déjà installée
+        if (isInStandaloneMode || window.matchMedia('(display-mode: standalone)').matches) {
+            installContainer.style.display = 'none';
+        }
+
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                if (outcome === 'accepted') installContainer.style.display = 'none';
+            } else if (isIOS) {
+                iosPopup.style.display = 'block';
+            }
+        });
+
+        window.addEventListener('appinstalled', () => {
+            installContainer.style.display = 'none';
+        });
+    </script>
 </body>
 </html>
